@@ -1,0 +1,25 @@
+# Dependencies & build output
+node_modules/
+dist/
+build/
+
+# Firebase local config (isi dari .example, jangan commit kunci asli)
+js/firebase-config.js
+
+# Firebase local files
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

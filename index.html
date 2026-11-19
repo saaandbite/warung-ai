@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#166534" />
+  <meta name="description" content="Warung AI — kasir warung offline-first dengan AI on-device." />
+  <title>Warung AI</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Warung AI</h1>
+    <span id="net-status" class="net-status online">Online</span>
+  </header>
+
+  <main>
+    <section id="tab-kasir" class="tab active">
+      <h2>Kasir</h2>
+      <p class="hint">Catat penjualan — tersimpan lokal, jalan tanpa internet.</p>
+      <div id="product-list" class="product-list">
+        <!-- Daftar produk dirender dari IndexedDB (js/db.js). -->
+        <p class="empty">Belum ada produk. Tambah produk dulu di tab Stok.</p>
+      </div>
+      <div class="cart">
+        <h3>Keranjang</h3>
+        <ul id="cart-items"></ul>
+        <p>Total: <strong id="cart-total">Rp 0</strong></p>
+        <label>Bayar: <input id="pay-amount" type="number" min="0" placeholder="0" /></label>
+        <p>Kembalian: <strong id="change-amount">Rp 0</strong></p>
+        <button id="checkout-btn" type="button">Simpan Penjualan</button>
+      </div>
+    </section>
+
+    <section id="tab-stok" class="tab">
+      <h2>Stok</h2>
+      <p class="hint">Stok berkurang otomatis tiap terjual. Batas menipis: 5.</p>
+      <form id="add-product-form">
+        <input name="name" type="text" placeholder="Nama barang" required />
+        <input name="price" type="number" min="0" placeholder="Harga (Rp)" required />
+        <input name="stock" type="number" min="0" placeholder="Stok awal" required />
+        <button type="submit">Tambah Barang</button>
+      </form>
+      <ul id="stock-list"></ul>
+    </section>
+
+    <section id="tab-ai" class="tab">
+      <h2>Tanya AI</h2>
+      <p class="hint">Jawaban dari data tokomu sendiri. Offline: Gemini Nano 4.
+        Online: fallback ke Gemini cloud.</p>
+      <form id="ask-form">
+        <input id="ask-input" type="text"
+          placeholder="cth: barang apa paling laris minggu ini?" required />
+        <button type="submit">Tanya</button>
+      </form>
+      <div id="ai-answer" class="ai-answer"></div>
+      <h3>Ringkasan harian</h3>
+      <button id="summary-btn" type="button">Buat ringkasan hari ini</button>
+      <div id="daily-summary" class="ai-answer"></div>
+    </section>
+
+    <section id="tab-ringkasan" class="tab">
+      <h2>Ringkasan</h2>
+      <p class="hint">Penjualan hari ini dan status sinkronisasi cloud.</p>
+      <p>Penjualan hari ini: <strong id="today-total">Rp 0</strong></p>
+      <p>Transaksi hari ini: <strong id="today-count">0</strong></p>
+      <p>Menunggu sinkronisasi: <strong id="pending-sync">0</strong> item</p>
+      <button id="sync-now-btn" type="button">Sinkronkan sekarang</button>
+    </section>
+  </main>
+
+  <nav class="tab-bar">
+    <button data-tab="kasir" class="active" type="button">Kasir</button>
+    <button data-tab="stok" type="button">Stok</button>
+    <button data-tab="ai" type="button">Tanya AI</button>
+    <button data-tab="ringkasan" type="button">Ringkasan</button>
+  </nav>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
