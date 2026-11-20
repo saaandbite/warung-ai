@@ -1,31 +1,74 @@
 // Warung AI — sinkronisasi cloud (Firestore).
-//
-// TODO (Ahmad): lengkapi implementasi ini setelah project Firebase dibuat.
-//   1. Salin js/firebase-config.example.js -> js/firebase-config.js, isi config.
-//   2. Inisialisasi Firestore + App Check.
-//   3. Kirim tiap item antrean (produk & penjualan dari IndexedDB) ke
-//      koleksi Firestore, lalu hapus dari antrean lokal bila berhasil.
-//   4. Panggil syncNow() otomatis saat event 'online' (di app.js).
-//
-// Sampai integrasi selesai, syncNow() hanya memeriksa koneksi dan
-// mengembalikan 0 supaya tombol "Sinkronkan sekarang" tidak error.
+import { getSyncQueue, getProduct, getSale, clearSyncItems } from './db.js';
+import { firebaseConfig } from './firebase-config.js';
 
-import { getSyncQueue } from './db.js';
+// Import Firebase SDK modular dari CDN resmi Google
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+let app;
+let db;
+
+function getDbInstance() {
+  if (!db) {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  }
+  return db;
+}
 
 export async function syncNow() {
   if (!navigator.onLine) {
     throw new Error('Tidak ada internet. Data tetap tersimpan lokal dan akan dikirim saat online.');
   }
+
   const queue = await getSyncQueue();
   if (queue.length === 0) return 0;
 
-  // TODO: kirim queue ke Firestore di sini, lalu clearSyncItems(ids).
-  // Contoh alur:
-  //   const db = getFirestore(firebaseApp);
-  //   for (const item of queue) { ... setDoc(...) ... }
-  //   await clearSyncItems(queue.map((q) => q.id));
-  //   return queue.length;
+  const firestore = getDbInstance();
+  const syncedIds = [];
 
-  console.warn('Sinkronisasi cloud belum diimplementasikan — antrean masih tersimpan lokal:', queue.length, 'item.');
-  return 0;
+  for (const item of queue) {
+    try {
+      if (item.type === 'product') {
+        const product = await getProduct(item.refId);
+        if (product) {
+          // Simpan atau perbarui data produk di Firestore
+          await setDoc(doc(firestore, 'products', String(product.id)), {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            stock: product.stock,
+            createdAt: product.createdAt || Date.now(),
+            syncedAt: Date.now(),
+          }, { merge: true });
+        }
+      } else if (item.type === 'sale') {
+        const sale = await getSale(item.refId);
+        if (sale) {
+          // Simpan data transaksi penjualan di Firestore
+          await setDoc(doc(firestore, 'sales', String(sale.id)), {
+            id: sale.id,
+            items: sale.items,
+            total: sale.total,
+            paid: sale.paid,
+            change: sale.change,
+            date: sale.date,
+            createdAt: sale.createdAt || Date.now(),
+            syncedAt: Date.now(),
+          }, { merge: true });
+        }
+      }
+      syncedIds.push(item.id);
+    } catch (err) {
+      console.error('Gagal sinkron item antrean:', item, err);
+      throw new Error(`Gagal sinkronisasi: ${err.message}`);
+    }
+  }
+
+  if (syncedIds.length > 0) {
+    await clearSyncItems(syncedIds);
+  }
+
+  return syncedIds.length;
 }

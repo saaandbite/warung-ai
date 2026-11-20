@@ -62,6 +62,15 @@ export function listProducts() {
   });
 }
 
+export function getProduct(id) {
+  return tx(['products'], 'readonly', (t) => {
+    return new Promise((resolve) => {
+      const req = t.objectStore('products').get(id);
+      req.onsuccess = () => resolve(req.result);
+    });
+  });
+}
+
 // --- Penjualan ---
 // items: array [productId, qty]. Mengurangi stok, menyimpan penjualan,
 // dan mengantrekan penjualan untuk sinkronisasi cloud.
@@ -107,6 +116,15 @@ export async function recordSale(items, paid) {
     t.objectStore('syncQueue').add({ type: 'sale', refId: saleId, at: Date.now() });
   });
   return { ...sale, id: saleId };
+}
+
+export function getSale(id) {
+  return tx(['sales'], 'readonly', (t) => {
+    return new Promise((resolve) => {
+      const req = t.objectStore('sales').get(id);
+      req.onsuccess = () => resolve(req.result);
+    });
+  });
 }
 
 export async function getTodaySummary() {

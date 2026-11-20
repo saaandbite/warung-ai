@@ -12,6 +12,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# Local agent skills & tools
+skills/
+
 # Environment
 .env
 .env.local

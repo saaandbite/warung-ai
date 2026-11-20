@@ -16,6 +16,7 @@ document.querySelectorAll('.tab-bar button').forEach((btn) => {
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
     if (btn.dataset.tab === 'ringkasan') renderSummary();
     if (btn.dataset.tab === 'stok') renderStock();
+    if (btn.dataset.tab === 'kasir') renderProducts();
   });
 });
 
@@ -27,7 +28,20 @@ function updateNetStatus() {
   netStatus.classList.toggle('online', online);
   netStatus.classList.toggle('offline', !online);
 }
-window.addEventListener('online', updateNetStatus);
+
+window.addEventListener('online', async () => {
+  updateNetStatus();
+  try {
+    const n = await syncNow();
+    if (n > 0) {
+      console.log(`Auto-synced ${n} item ke Firestore.`);
+    }
+  } catch (err) {
+    console.warn('Auto-sync status:', err.message);
+  }
+  renderSummary();
+});
+
 window.addEventListener('offline', updateNetStatus);
 updateNetStatus();
 
@@ -40,6 +54,7 @@ if ('serviceWorker' in navigator) {
 
 // --- Kasir: render produk + keranjang ---
 const cart = new Map(); // productId -> qty
+let currentCartTotal = 0;
 
 function formatRupiah(n) {
   return 'Rp ' + Number(n).toLocaleString('id-ID');
@@ -59,44 +74,128 @@ async function renderProducts() {
     btn.textContent = `${p.name} — ${formatRupiah(p.price)} (stok ${p.stock})`;
     btn.disabled = p.stock <= 0;
     btn.addEventListener('click', () => {
-      cart.set(p.id, (cart.get(p.id) || 0) + 1);
-      renderCart();
+      const currentQty = cart.get(p.id) || 0;
+      if (currentQty < p.stock) {
+        cart.set(p.id, currentQty + 1);
+        renderCart();
+      } else {
+        alert(`Stok ${p.name} tidak mencukupi (sisa ${p.stock}).`);
+      }
     });
     list.appendChild(btn);
   });
 }
 
-function renderCart() {
-  const ul = document.getElementById('cart-items');
-  ul.innerHTML = '';
-  let total = 0;
-  // Harga diambil dari daftar produk saat checkout (recordSale memvalidasi stok).
-  cart.forEach((qty, id) => {
-    const li = document.createElement('li');
-    li.textContent = `${id} × ${qty}`;
-    ul.appendChild(li);
-  });
-  document.getElementById('cart-total').textContent = formatRupiah(total);
+function updateChangeAmount() {
+  const payInput = document.getElementById('pay-amount');
+  const paid = Number(payInput.value) || 0;
+  const change = Math.max(0, paid - currentCartTotal);
+  document.getElementById('change-amount').textContent = formatRupiah(change);
 }
 
-document.getElementById('pay-amount').addEventListener('input', (e) => {
-  const total = 0; // dihitung ulang saat checkout dari harga produk
-  const paid = Number(e.target.value) || 0;
-  document.getElementById('change-amount').textContent = formatRupiah(Math.max(0, paid - total));
-});
+async function renderCart() {
+  const ul = document.getElementById('cart-items');
+  ul.innerHTML = '';
+  const products = await listProducts();
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  currentCartTotal = 0;
+
+  if (cart.size === 0) {
+    ul.innerHTML = '<li class="empty">Keranjang masih kosong.</li>';
+    document.getElementById('cart-total').textContent = 'Rp 0';
+    updateChangeAmount();
+    return;
+  }
+
+  cart.forEach((qty, id) => {
+    const p = byId.get(id);
+    if (!p) return;
+    const itemTotal = p.price * qty;
+    currentCartTotal += itemTotal;
+
+    const li = document.createElement('li');
+    li.style.display = 'flex';
+    li.style.justifyContent = 'space-between';
+    li.style.alignItems = 'center';
+    li.style.margin = '6px 0';
+
+    const info = document.createElement('span');
+    info.textContent = `${p.name} (${qty} × ${formatRupiah(p.price)}) = ${formatRupiah(itemTotal)}`;
+    li.appendChild(info);
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.display = 'flex';
+    btnGroup.style.gap = '6px';
+
+    const minusBtn = document.createElement('button');
+    minusBtn.type = 'button';
+    minusBtn.textContent = '−';
+    minusBtn.style.padding = '2px 8px';
+    minusBtn.addEventListener('click', () => {
+      if (qty > 1) {
+        cart.set(id, qty - 1);
+      } else {
+        cart.delete(id);
+      }
+      renderCart();
+    });
+
+    const plusBtn = document.createElement('button');
+    plusBtn.type = 'button';
+    plusBtn.textContent = '+';
+    plusBtn.style.padding = '2px 8px';
+    plusBtn.disabled = qty >= p.stock;
+    plusBtn.addEventListener('click', () => {
+      if (qty < p.stock) {
+        cart.set(id, qty + 1);
+        renderCart();
+      }
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.textContent = '✕';
+    delBtn.style.padding = '2px 8px';
+    delBtn.style.background = '#dc2626';
+    delBtn.addEventListener('click', () => {
+      cart.delete(id);
+      renderCart();
+    });
+
+    btnGroup.appendChild(minusBtn);
+    btnGroup.appendChild(plusBtn);
+    btnGroup.appendChild(delBtn);
+    li.appendChild(btnGroup);
+    ul.appendChild(li);
+  });
+
+  document.getElementById('cart-total').textContent = formatRupiah(currentCartTotal);
+  updateChangeAmount();
+}
+
+document.getElementById('pay-amount').addEventListener('input', updateChangeAmount);
 
 document.getElementById('checkout-btn').addEventListener('click', async () => {
-  if (cart.size === 0) return;
+  if (cart.size === 0) {
+    alert('Keranjang masih kosong!');
+    return;
+  }
   const paid = Number(document.getElementById('pay-amount').value) || 0;
+  if (paid < currentCartTotal) {
+    alert(`Uang pembayaran kurang Rp ${Number(currentCartTotal - paid).toLocaleString('id-ID')}.`);
+    return;
+  }
+
   try {
     const sale = await recordSale([...cart.entries()], paid);
     cart.clear();
-    renderCart();
+    await renderCart();
     document.getElementById('pay-amount').value = '';
     document.getElementById('change-amount').textContent = 'Rp 0';
     await renderProducts();
     await renderStock();
-    alert(`Penjualan tersimpan. Total ${formatRupiah(sale.total)}, kembalian ${formatRupiah(sale.change)}.`);
+    alert(`Penjualan berhasil disimpan! Total: ${formatRupiah(sale.total)}, Kembalian: ${formatRupiah(sale.change)}.`);
   } catch (err) {
     alert(`Gagal menyimpan penjualan: ${err.message}`);
   }
@@ -121,6 +220,10 @@ async function renderStock() {
   const ul = document.getElementById('stock-list');
   const products = await listProducts();
   ul.innerHTML = '';
+  if (products.length === 0) {
+    ul.innerHTML = '<li class="empty">Belum ada barang di stok.</li>';
+    return;
+  }
   products.forEach((p) => {
     const li = document.createElement('li');
     li.textContent = `${p.name} — ${formatRupiah(p.price)} — stok ${p.stock}`;
@@ -167,15 +270,22 @@ async function renderSummary() {
 }
 
 document.getElementById('sync-now-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('sync-now-btn');
+  btn.disabled = true;
+  btn.textContent = 'Menyinkronkan…';
   try {
     const n = await syncNow();
-    alert(`${n} item berhasil disinkronkan ke cloud.`);
+    alert(`${n} item berhasil disinkronkan ke Firestore.`);
   } catch (err) {
     alert(`Sinkronisasi gagal: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sinkronkan sekarang';
+    await renderSummary();
   }
-  await renderSummary();
 });
 
 // --- Muat awal ---
 renderProducts();
 renderStock();
+renderCart();
