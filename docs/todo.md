@@ -19,6 +19,7 @@ Fokus utama: 4 Fitur Inti MVP + Syarat Wajib Lomba. Jangan tambah fitur berlebih
 - [ ] Live search / pencarian nama barang di kasir.
 - [ ] Tombol tambah stok cepat (restock barang yang sudah ada).
 - [ ] Skenario bayar uang besar & pembulatan kembalian: kalau uang yang dibayar jauh lebih besar dari total dan kembaliannya receh/ribet, kasir bisa tanya pembeli "punya Rp X?" supaya kembalian dibulatkan (mis. ke ribuan terdekat) — tampilkan saran nominal pembulatan + kembalian setelah dibulatkan, dan catat selisih pembulatan di struk/ringkasan.
+- [ ] Cetak struk: setelah penjualan berhasil, tampilkan struk (nama warung, daftar barang, total, bayar, kembalian, tanggal) dengan tombol cetak via window.print() + gaya print CSS supaya hanya struk yang tercetak.
 
 ## 3. Sinkronisasi Cloud (Firebase Firestore)
 - [x] Inisialisasi Firebase & upload antrean `syncQueue` (produk & penjualan) ke Firestore.
