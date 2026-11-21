@@ -19,6 +19,7 @@ body {
   color: #fff;
   position: sticky;
   top: 0;
+  z-index: 10;
 }
 
 .app-header h1 { margin: 0; font-size: 1.25rem; }
@@ -42,6 +43,15 @@ main { padding: 16px; max-width: 640px; margin: 0 auto; }
 
 .empty { color: #94a3b8; }
 
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.section-header-row h2 { margin: 0; }
+
 button {
   background: #166534;
   color: #fff;
@@ -50,9 +60,75 @@ button {
   padding: 10px 16px;
   font-size: 1rem;
   cursor: pointer;
+  transition: opacity 0.15s ease, background 0.15s ease;
 }
 
+button:hover { opacity: 0.9; }
 button:disabled { opacity: 0.5; cursor: default; }
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #1e293b;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  font-weight: 600;
+}
+.btn-secondary:hover {
+  background: #cbd5e1;
+}
+
+/* Quick Cash buttons */
+.quick-cash-container {
+  margin: 12px 0 6px 0;
+}
+.quick-cash-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+.quick-cash-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.btn-quick-cash {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+.btn-quick-cash:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.product-list button {
+  text-align: left;
+  line-height: 1.4;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 72px;
+}
+
+.cart {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
 
 input {
   width: 100%;
@@ -71,6 +147,7 @@ input {
   display: flex;
   background: #fff;
   border-top: 1px solid #e2e8f0;
+  z-index: 10;
 }
 
 .tab-bar button {

@@ -27,6 +27,18 @@
         <h3>Keranjang</h3>
         <ul id="cart-items"></ul>
         <p>Total: <strong id="cart-total">Rp 0</strong></p>
+        
+        <div class="quick-cash-container">
+          <span class="quick-cash-label">Uang Cepat:</span>
+          <div class="quick-cash-buttons">
+            <button type="button" class="btn-quick-cash" data-amount="exact">Uang Pas</button>
+            <button type="button" class="btn-quick-cash" data-amount="10000">10rb</button>
+            <button type="button" class="btn-quick-cash" data-amount="20000">20rb</button>
+            <button type="button" class="btn-quick-cash" data-amount="50000">50rb</button>
+            <button type="button" class="btn-quick-cash" data-amount="100000">100rb</button>
+          </div>
+        </div>
+
         <label>Bayar: <input id="pay-amount" type="number" min="0" placeholder="0" /></label>
         <p>Kembalian: <strong id="change-amount">Rp 0</strong></p>
         <button id="checkout-btn" type="button">Simpan Penjualan</button>
@@ -34,7 +46,12 @@
     </section>
 
     <section id="tab-stok" class="tab">
-      <h2>Stok</h2>
+      <div class="section-header-row">
+        <h2>Stok Barang</h2>
+        <button id="seed-sample-btn" type="button" class="btn-secondary">
+          ✨ Muat Data Contoh Warung
+        </button>
+      </div>
       <p class="hint">Stok berkurang otomatis tiap terjual. Batas menipis: 5.</p>
       <form id="add-product-form">
         <input name="name" type="text" placeholder="Nama barang" required />

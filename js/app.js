@@ -1,7 +1,7 @@
 // Warung AI — entry point.
 // Menangani navigasi tab, status online/offline, dan registrasi Service Worker.
 
-import { listProducts, recordSale, getTodaySummary, getPendingSyncCount } from './db.js';
+import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts } from './db.js';
 import { askAI, dailySummary } from './ai.js';
 import { syncNow } from './sync.js';
 
@@ -64,14 +64,28 @@ async function renderProducts() {
   const list = document.getElementById('product-list');
   const products = await listProducts();
   if (products.length === 0) {
-    list.innerHTML = '<p class="empty">Belum ada produk. Tambah produk dulu di tab Stok.</p>';
+    list.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 24px 12px; background: #fff; border-radius: 8px; border: 1px dashed #cbd5e1;">
+        <p class="empty" style="margin-bottom: 12px;">Belum ada produk di etalase toko.</p>
+        <button id="quick-seed-btn" type="button" class="btn-secondary" style="font-size: 0.95rem; padding: 8px 16px;">
+          ✨ Muat 15 Produk Contoh Warung
+        </button>
+      </div>
+    `;
+    const quickSeedBtn = document.getElementById('quick-seed-btn');
+    if (quickSeedBtn) {
+      quickSeedBtn.addEventListener('click', handleSeedProducts);
+    }
     return;
   }
   list.innerHTML = '';
   products.forEach((p) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = `${p.name} — ${formatRupiah(p.price)} (stok ${p.stock})`;
+    btn.innerHTML = `
+      <span style="font-weight: 600;">${p.name}</span>
+      <span style="font-size: 0.9rem; color: #bbf7d0;">${formatRupiah(p.price)} <small style="color:#f1f5f9;">(stok ${p.stock})</small></span>
+    `;
     btn.disabled = p.stock <= 0;
     btn.addEventListener('click', () => {
       const currentQty = cart.get(p.id) || 0;
@@ -92,6 +106,20 @@ function updateChangeAmount() {
   const change = Math.max(0, paid - currentCartTotal);
   document.getElementById('change-amount').textContent = formatRupiah(change);
 }
+
+// Tombol Uang Cepat (Quick Cash Presets)
+document.querySelectorAll('.btn-quick-cash').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const amountType = btn.dataset.amount;
+    const payInput = document.getElementById('pay-amount');
+    if (amountType === 'exact') {
+      payInput.value = currentCartTotal;
+    } else {
+      payInput.value = Number(amountType);
+    }
+    updateChangeAmount();
+  });
+});
 
 async function renderCart() {
   const ul = document.getElementById('cart-items');
@@ -200,6 +228,31 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     alert(`Gagal menyimpan penjualan: ${err.message}`);
   }
 });
+
+// Handler Muat Data Contoh
+async function handleSeedProducts() {
+  const seedBtn = document.getElementById('seed-sample-btn');
+  if (seedBtn) seedBtn.disabled = true;
+  try {
+    const addedCount = await seedSampleProducts();
+    if (addedCount > 0) {
+      alert(`Berhasil menambahkan ${addedCount} produk contoh warung khas Indonesia!`);
+    } else {
+      alert('Semua produk contoh sudah ada di daftar stok.');
+    }
+    await renderStock();
+    await renderProducts();
+  } catch (err) {
+    alert(`Gagal memuat produk contoh: ${err.message}`);
+  } finally {
+    if (seedBtn) seedBtn.disabled = false;
+  }
+}
+
+const seedSampleBtn = document.getElementById('seed-sample-btn');
+if (seedSampleBtn) {
+  seedSampleBtn.addEventListener('click', handleSeedProducts);
+}
 
 // --- Stok: tambah produk + daftar stok ---
 document.getElementById('add-product-form').addEventListener('submit', async (e) => {

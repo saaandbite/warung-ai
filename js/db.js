@@ -71,6 +71,40 @@ export function getProduct(id) {
   });
 }
 
+// Muat produk contoh (kombinasi produk global kebanggaan Indonesia & sembako harian)
+export const SAMPLE_PRODUCTS = [
+  // Produk Indonesia Terkenal Global
+  { name: 'Indomie Goreng Original', price: 3500, stock: 40 },
+  { name: 'Kopiko Coffee Candy (Zak)', price: 8500, stock: 25 },
+  { name: 'Tolak Angin SidoMuncul (Sachet)', price: 4000, stock: 30 },
+  { name: 'Richeese Nabati Wafer Keju', price: 2500, stock: 35 },
+  { name: 'Kacang Dua Kelinci Sukro', price: 6000, stock: 20 },
+  { name: 'Teh Botol Sosro Kotak 250ml', price: 4500, stock: 24 },
+  { name: 'Kopi Kapal Api Special Mix', price: 2000, stock: 50 },
+  { name: 'SilverQueen Chocolate Milk 58g', price: 16000, stock: 15 },
+  { name: 'Indomie Kuah Ayam Bawang', price: 3500, stock: 30 },
+  { name: 'Sari Roti Sobek Coklat', price: 11000, stock: 8 },
+  // Sembako & Kebutuhan Harian Warung
+  { name: 'Beras Premium 1 kg', price: 16000, stock: 15 },
+  { name: 'Minyak Goreng Kita 1 Liter', price: 17500, stock: 12 },
+  { name: 'Telur Ayam 1/2 kg (~8 butir)', price: 15000, stock: 10 },
+  { name: 'Gula Pasir Gulaku 1 kg', price: 18000, stock: 14 },
+  { name: 'Air Mineral Aqua 600ml', price: 3500, stock: 24 }
+];
+
+export async function seedSampleProducts() {
+  const existing = await listProducts();
+  const existingNames = new Set(existing.map((p) => p.name.toLowerCase()));
+  
+  const toAdd = SAMPLE_PRODUCTS.filter((p) => !existingNames.has(p.name.toLowerCase()));
+  if (toAdd.length === 0) return 0;
+
+  for (const item of toAdd) {
+    await addProduct(item);
+  }
+  return toAdd.length;
+}
+
 // --- Penjualan ---
 // items: array [productId, qty]. Mengurangi stok, menyimpan penjualan,
 // dan mengantrekan penjualan untuk sinkronisasi cloud.
