@@ -1,9 +1,15 @@
-// Service Worker Warung AI — cache-first untuk app shell,
-// supaya aplikasi tetap bisa dibuka saat offline.
+// Service Worker Warung AI — network-first untuk app shell,
+// cache hanya sebagai cadangan saat offline.
 // Data toko (produk, penjualan) tinggal di IndexedDB (js/db.js),
 // bukan di cache ini.
+//
+// Kenapa network-first, bukan cache-first: cache-first pernah membuat
+// satu sesi mencampur file lama dan baru (sync.js baru vs db.js lama
+// dari cache) sehingga impor modul gagal. Network-first memastikan
+// semua file dalam satu sesi berasal dari deployment yang sama saat
+// online; cache dipakai hanya bila tidak ada internet.
 
-const CACHE_NAME = 'warung-ai-v4';
+const CACHE_NAME = 'warung-ai-v5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -39,15 +45,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Network-first: saat online selalu ambil versi terbaru dari server
+  // (satu sesi = satu deployment yang konsisten). Saat offline, pakai
+  // cache sebagai cadangan supaya aplikasi tetap bisa dibuka.
   event.respondWith(
-    caches.match(event.request).then(
-      (cached) =>
-        cached ||
-        fetch(event.request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        }),
-    ),
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request)),
   );
 });
