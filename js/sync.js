@@ -1,20 +1,36 @@
 // Warung AI — sinkronisasi cloud (Firestore).
+//
+// CATATAN DEPLOY: file ini sengaja TIDAK mengimpor firebase-config.js
+// maupun Firebase SDK secara statis. firebase-config.js di-ignore git
+// (lihat .gitignore) sehingga tidak ada di repo / deployment Vercel —
+// import statis akan membuat SELURUH aplikasi gagal dimuat (app.js
+// mengimpor modul ini). Karena itu config + SDK dimuat malas (lazy)
+// di dalam getDbInstance(), hanya saat sinkronisasi benar-benar
+// dipanggil. Tanpa config, syncNow() melempar pesan yang jelas dan
+// data tetap aman di IndexedDB; kasir/stok/AI lokal tetap jalan.
 import { getSyncQueue, getProduct, getSale, clearSyncItems } from './db.js';
-import { firebaseConfig } from './firebase-config.js';
 
-// Import Firebase SDK modular dari CDN resmi Google
-import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
-import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+let db = null;
+let firestoreLib = null;
 
-let app;
-let db;
+async function getDbInstance() {
+  if (db) return { firestore: db, ...firestoreLib };
 
-function getDbInstance() {
-  if (!db) {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    db = getFirestore(app);
+  let firebaseConfig;
+  try {
+    ({ firebaseConfig } = await import('./firebase-config.js'));
+  } catch {
+    throw new Error('Firebase belum dikonfigurasi di deployment ini. Data tetap tersimpan lokal dan akan dikirim setelah konfigurasi ditambahkan.');
   }
-  return db;
+
+  // Firebase SDK modular dari CDN resmi Google — dimuat hanya saat sync.
+  const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js');
+  const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js');
+
+  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  firestoreLib = { doc, setDoc };
+  return { firestore: db, ...firestoreLib };
 }
 
 export async function syncNow() {
@@ -25,7 +41,7 @@ export async function syncNow() {
   const queue = await getSyncQueue();
   if (queue.length === 0) return 0;
 
-  const firestore = getDbInstance();
+  const { firestore, doc, setDoc } = await getDbInstance();
   const syncedIds = [];
 
   for (const item of queue) {

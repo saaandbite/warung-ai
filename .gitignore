@@ -3,8 +3,9 @@ node_modules/
 dist/
 build/
 
-# Firebase local config (isi dari .example, jangan commit kunci asli)
-js/firebase-config.js
+# Firebase: js/firebase-config.js SENGAJA di-commit — itu config web app
+# (public client config, bukan rahasia server). Jangan pernah commit
+# service account JSON (.env, kunci privat) ke repo ini.
 
 # Firebase local files
 .firebase/

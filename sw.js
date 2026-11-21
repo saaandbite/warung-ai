@@ -3,7 +3,7 @@
 // Data toko (produk, penjualan) tinggal di IndexedDB (js/db.js),
 // bukan di cache ini.
 
-const CACHE_NAME = 'warung-ai-v2';
+const CACHE_NAME = 'warung-ai-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -12,7 +12,6 @@ const APP_SHELL = [
   './js/db.js',
   './js/ai.js',
   './js/sync.js',
-  './js/firebase-config.js',
   './manifest.json',
 ];
 

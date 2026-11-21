@@ -3,7 +3,15 @@
 
 import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts } from './db.js';
 import { askAI, dailySummary } from './ai.js';
-import { syncNow } from './sync.js';
+
+// sync.js dimuat malas (lazy): modul itu butuh firebase-config.js +
+// Firebase CDN, yang tidak ada di deployment — import statis di sini
+// akan membuat SELURUH aplikasi gagal dimuat. Sinkronisasi hanya
+// dimuat saat benar-benar dipanggil (auto-sync saat online / tombol).
+async function syncNow() {
+  const { syncNow: doSync } = await import('./sync.js');
+  return doSync();
+}
 
 const LOW_STOCK_THRESHOLD = 5;
 

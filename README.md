@@ -71,9 +71,10 @@ Service Worker hanya aktif lewat `http://localhost` atau HTTPS.
 
 1. Buat project di [Firebase Console](https://console.firebase.google.com).
 2. Aktifkan **Firestore**, **Authentication**, **App Check**, dan **Firebase AI Logic**.
-3. Salin `js/firebase-config.example.js` menjadi `js/firebase-config.js` dan isi
-   dengan konfigurasi project-mu. File `firebase-config.js` di-ignore git —
-   jangan commit kunci aslimu.
+3. `js/firebase-config.js` berisi konfigurasi web app project Firebase-mu dan
+   sudah di-commit — ini public client config (bukan rahasia server), jadi
+   deployment Vercel langsung bisa sync ke Firestore. Jangan pernah commit
+   service account JSON atau kunci privat ke repo ini.
 4. Untuk pengembangan, App Check boleh memakai debug token (diterima untuk
    submission hackathon).
 
