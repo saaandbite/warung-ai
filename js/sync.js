@@ -1,14 +1,11 @@
 // Warung AI — sinkronisasi cloud (Firestore).
 //
-// CATATAN DEPLOY: file ini sengaja TIDAK mengimpor firebase-config.js
-// maupun Firebase SDK secara statis. firebase-config.js di-ignore git
-// (lihat .gitignore) sehingga tidak ada di repo / deployment Vercel —
-// import statis akan membuat SELURUH aplikasi gagal dimuat (app.js
-// mengimpor modul ini). Karena itu config + SDK dimuat malas (lazy)
-// di dalam getDbInstance(), hanya saat sinkronisasi benar-benar
-// dipanggil. Tanpa config, syncNow() melempar pesan yang jelas dan
+// CATATAN: file ini TIDAK mengimpor firebase-config.js maupun Firebase
+// SDK secara statis — keduanya dimuat malas (lazy) di getDbInstance().
+// Kalau config tidak ada, import statis akan membuat SELURUH aplikasi
+// gagal dimuat. Tanpa config, sync/pull melempar pesan yang jelas dan
 // data tetap aman di IndexedDB; kasir/stok/AI lokal tetap jalan.
-import { getSyncQueue, getProduct, getSale, clearSyncItems } from './db.js';
+import { getSyncQueue, getProduct, getSale, clearSyncItems, upsertProductFromCloud, upsertSaleFromCloud } from './db.js';
 
 let db = null;
 let firestoreLib = null;
@@ -23,13 +20,13 @@ async function getDbInstance() {
     throw new Error('Firebase belum dikonfigurasi di deployment ini. Data tetap tersimpan lokal dan akan dikirim setelah konfigurasi ditambahkan.');
   }
 
-  // Firebase SDK modular dari CDN resmi Google — dimuat hanya saat sync.
+  // Firebase SDK modular dari CDN resmi Google — dimuat hanya saat sync/pull.
   const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js');
-  const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js');
+  const { getFirestore, doc, setDoc, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js');
 
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   db = getFirestore(app);
-  firestoreLib = { doc, setDoc };
+  firestoreLib = { doc, setDoc, collection, getDocs };
   return { firestore: db, ...firestoreLib };
 }
 
@@ -87,4 +84,58 @@ export async function syncNow() {
   }
 
   return syncedIds.length;
+}
+
+// Tarik data dari Firestore ke perangkat ini (pull sync).
+// Hanya MENAMBAH produk & penjualan yang belum ada di IndexedDB —
+// tidak menimpa data lokal, supaya perubahan lokal yang belum
+// terkirim tidak hilang. Mengembalikan { products, sales } = jumlah
+// item baru yang masuk.
+//
+// Batasan yang diketahui: ID produk/penjualan adalah nomor urut lokal
+// (auto-increment). Kalau dua perangkat membuat produk berbeda sebelum
+// sinkron, ID-nya bisa bertabrakan dan pull akan melewati yang
+// bertabrakan itu. Untuk alur satu warung (satu perangkat menginput,
+// perangkat lain membaca) ini sudah cukup; ID global (UUID) adalah
+// perbaikan model data berikutnya bila diperlukan.
+export async function pullFromCloud() {
+  if (!navigator.onLine) {
+    throw new Error('Tidak ada internet. Data cloud tidak bisa ditarik saat offline.');
+  }
+  const { firestore, collection, getDocs } = await getDbInstance();
+
+  let addedProducts = 0;
+  let addedSales = 0;
+
+  const productSnap = await getDocs(collection(firestore, 'products'));
+  for (const d of productSnap.docs) {
+    const data = d.data();
+    if (typeof data.id === 'undefined') continue;
+    const added = await upsertProductFromCloud({
+      id: Number(data.id),
+      name: data.name,
+      price: data.price,
+      stock: data.stock,
+      createdAt: data.createdAt,
+    });
+    if (added) addedProducts += 1;
+  }
+
+  const saleSnap = await getDocs(collection(firestore, 'sales'));
+  for (const d of saleSnap.docs) {
+    const data = d.data();
+    if (typeof data.id === 'undefined') continue;
+    const added = await upsertSaleFromCloud({
+      id: Number(data.id),
+      items: data.items,
+      total: data.total,
+      paid: data.paid,
+      change: data.change,
+      date: data.date,
+      createdAt: data.createdAt,
+    });
+    if (added) addedSales += 1;
+  }
+
+  return { products: addedProducts, sales: addedSales };
 }

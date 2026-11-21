@@ -176,6 +176,43 @@ export async function getTodaySummary() {
   };
 }
 
+// --- Tarik dari cloud (pull) ---
+// Menyimpan data dari Firestore ke IndexedDB TANPA masuk antrean
+// sinkronisasi (datanya memang sudah ada di cloud). Hanya menambah
+// yang belum ada — tidak menimpa data lokal, supaya perubahan lokal
+// yang belum terkirim tidak hilang.
+export async function upsertProductFromCloud(product) {
+  const existing = await getProduct(product.id);
+  if (existing) return false;
+  await tx(['products'], 'readwrite', (t) => {
+    t.objectStore('products').put({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      createdAt: product.createdAt || Date.now(),
+    });
+  });
+  return true;
+}
+
+export async function upsertSaleFromCloud(sale) {
+  const existing = await getSale(sale.id);
+  if (existing) return false;
+  await tx(['sales'], 'readwrite', (t) => {
+    t.objectStore('sales').put({
+      id: sale.id,
+      items: sale.items || [],
+      total: sale.total,
+      paid: sale.paid,
+      change: sale.change,
+      date: sale.date,
+      createdAt: sale.createdAt || Date.now(),
+    });
+  });
+  return true;
+}
+
 // --- Antrean sinkronisasi ---
 export function getPendingSyncCount() {
   return tx(['syncQueue'], 'readonly', (t) => {

@@ -21,6 +21,7 @@ Fokus utama: 4 Fitur Inti MVP + Syarat Wajib Lomba. Jangan tambah fitur berlebih
 
 ## 3. Sinkronisasi Cloud (Firebase Firestore)
 - [x] Inisialisasi Firebase & upload antrean `syncQueue` (produk & penjualan) ke Firestore.
+- [x] Tarik data dari Firestore ke perangkat (pull sync saat dibuka/online + tombol "Tarik data dari cloud") — hanya menambah yang belum ada, tidak menimpa data lokal.
 - [ ] Indikator status sinkronisasi yang jelas di UI ("Tersinkron 2 menit lalu").
 
 ## 4. Hybrid AI Layer (Firebase AI Logic) — Kunci Hackathon

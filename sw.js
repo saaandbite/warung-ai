@@ -3,7 +3,7 @@
 // Data toko (produk, penjualan) tinggal di IndexedDB (js/db.js),
 // bukan di cache ini.
 
-const CACHE_NAME = 'warung-ai-v3';
+const CACHE_NAME = 'warung-ai-v4';
 const APP_SHELL = [
   './',
   './index.html',

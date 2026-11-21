@@ -5,12 +5,18 @@ import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSam
 import { askAI, dailySummary } from './ai.js';
 
 // sync.js dimuat malas (lazy): modul itu butuh firebase-config.js +
-// Firebase CDN, yang tidak ada di deployment — import statis di sini
-// akan membuat SELURUH aplikasi gagal dimuat. Sinkronisasi hanya
+// Firebase CDN — import statis di sini akan membuat SELURUH aplikasi
+// gagal dimuat kalau config/SDK tidak bisa dimuat. Sinkronisasi hanya
 // dimuat saat benar-benar dipanggil (auto-sync saat online / tombol).
 async function syncNow() {
   const { syncNow: doSync } = await import('./sync.js');
   return doSync();
+}
+
+// Sama seperti syncNow, tapi untuk menarik data dari cloud.
+async function pullFromCloud() {
+  const { pullFromCloud: doPull } = await import('./sync.js');
+  return doPull();
 }
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -39,6 +45,16 @@ function updateNetStatus() {
 
 window.addEventListener('online', async () => {
   updateNetStatus();
+  try {
+    const pulled = await pullFromCloud();
+    if (pulled.products > 0 || pulled.sales > 0) {
+      console.log(`Menarik ${pulled.products} produk & ${pulled.sales} penjualan dari Firestore.`);
+      await renderProducts();
+      await renderStock();
+    }
+  } catch (err) {
+    console.warn('Auto-pull status:', err.message);
+  }
   try {
     const n = await syncNow();
     if (n > 0) {
@@ -346,7 +362,36 @@ document.getElementById('sync-now-btn').addEventListener('click', async () => {
   }
 });
 
+document.getElementById('pull-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('pull-btn');
+  btn.disabled = true;
+  btn.textContent = 'Menarik data…';
+  try {
+    const pulled = await pullFromCloud();
+    alert(`Berhasil menarik ${pulled.products} produk dan ${pulled.sales} penjualan dari cloud.`);
+    await renderProducts();
+    await renderStock();
+  } catch (err) {
+    alert(`Tarik data gagal: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Tarik data dari cloud';
+    await renderSummary();
+  }
+});
+
 // --- Muat awal ---
-renderProducts();
-renderStock();
-renderCart();
+// Saat dibuka dan online, tarik dulu data dari cloud supaya perangkat
+// baru / origin baru (mis. URL Vercel) langsung berisi data toko.
+(async () => {
+  if (navigator.onLine) {
+    try {
+      await pullFromCloud();
+    } catch (err) {
+      console.warn('Pull awal dilewati:', err.message);
+    }
+  }
+  renderProducts();
+  renderStock();
+  renderCart();
+})();
