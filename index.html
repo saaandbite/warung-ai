@@ -11,37 +11,90 @@
 </head>
 <body>
   <header class="app-header">
-    <h1>Warung AI</h1>
+    <div class="brand-group">
+      <h1>Warung AI</h1>
+      <span class="app-badge">Offline-First POS</span>
+    </div>
     <span id="net-status" class="net-status online">Online</span>
   </header>
 
   <main>
     <section id="tab-kasir" class="tab active">
-      <h2>Kasir</h2>
-      <p class="hint">Catat penjualan — tersimpan lokal, jalan tanpa internet.</p>
-      <div id="product-list" class="product-list">
-        <!-- Daftar produk dirender dari IndexedDB (js/db.js). -->
-        <p class="empty">Belum ada produk. Tambah produk dulu di tab Stok.</p>
-      </div>
-      <div class="cart">
-        <h3>Keranjang</h3>
-        <ul id="cart-items"></ul>
-        <p>Total: <strong id="cart-total">Rp 0</strong></p>
-        
-        <div class="quick-cash-container">
-          <span class="quick-cash-label">Uang Cepat:</span>
-          <div class="quick-cash-buttons">
-            <button type="button" class="btn-quick-cash" data-amount="exact">Uang Pas</button>
-            <button type="button" class="btn-quick-cash" data-amount="10000">10rb</button>
-            <button type="button" class="btn-quick-cash" data-amount="20000">20rb</button>
-            <button type="button" class="btn-quick-cash" data-amount="50000">50rb</button>
-            <button type="button" class="btn-quick-cash" data-amount="100000">100rb</button>
+      <div class="pos-layout">
+        <!-- Kolom Kiri: Katalog & Pencarian -->
+        <div class="pos-catalog-panel">
+          <div class="catalog-top-bar">
+            <div class="search-box">
+              <span class="search-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+              </span>
+              <input id="product-search" type="search" placeholder="Cari nama barang (misal: Indomie, Kopi)..." autocomplete="off" />
+              <button id="search-clear-btn" type="button" class="btn-clear-search" title="Hapus pencarian" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <div class="catalog-status-bar">
+              <span id="catalog-count" class="catalog-badge">0 Produk</span>
+              <span class="hint-small">Pilih barang untuk dimasukkan ke keranjang</span>
+            </div>
+          </div>
+
+          <div id="product-list" class="product-cards-grid">
+            <!-- Daftar kartu produk dirender dari IndexedDB (js/db.js). -->
           </div>
         </div>
 
-        <label>Bayar: <input id="pay-amount" type="number" min="0" placeholder="0" /></label>
-        <p>Kembalian: <strong id="change-amount">Rp 0</strong></p>
-        <button id="checkout-btn" type="button">Simpan Penjualan</button>
+        <!-- Kolom Kanan: Keranjang & Pembayaran -->
+        <div class="pos-cart-panel">
+          <div class="cart-card">
+            <div class="cart-header">
+              <div class="cart-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18"/><path d="M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25"/><circle cx="18" cy="20" r="2"/><circle cx="8" cy="20" r="2"/></svg>
+                <h3>Keranjang</h3>
+                <span id="cart-item-count" class="cart-badge-count">0 item</span>
+              </div>
+              <button id="clear-cart-btn" type="button" class="btn-clear-cart" title="Kosongkan keranjang" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Kosongkan</span>
+              </button>
+            </div>
+
+            <ul id="cart-items" class="cart-items-list"></ul>
+
+            <div class="cart-total-box">
+              <span class="total-label">Total Tagihan</span>
+              <strong id="cart-total" class="total-value">Rp 0</strong>
+            </div>
+
+            <div class="quick-cash-container">
+              <span class="quick-cash-label">Pilihan Cepat Bayar:</span>
+              <div class="quick-cash-buttons">
+                <button type="button" class="btn-quick-cash" data-amount="exact">Uang Pas</button>
+                <button type="button" class="btn-quick-cash" data-amount="10000">10rb</button>
+                <button type="button" class="btn-quick-cash" data-amount="20000">20rb</button>
+                <button type="button" class="btn-quick-cash" data-amount="50000">50rb</button>
+                <button type="button" class="btn-quick-cash" data-amount="100000">100rb</button>
+              </div>
+            </div>
+
+            <div class="pay-input-group">
+              <label for="pay-amount" class="pay-label">Nominal Uang Diterima:</label>
+              <div class="pay-input-wrapper">
+                <span class="currency-prefix">Rp</span>
+                <input id="pay-amount" type="number" min="0" placeholder="0" />
+              </div>
+            </div>
+
+            <div class="change-box" id="change-box">
+              <span class="change-label">Kembalian:</span>
+              <strong id="change-amount" class="change-value">Rp 0</strong>
+            </div>
+
+            <button id="checkout-btn" type="button" class="btn-checkout" disabled>
+              <span>Simpan Penjualan</span>
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -49,7 +102,8 @@
       <div class="section-header-row">
         <h2>Stok Barang</h2>
         <button id="seed-sample-btn" type="button" class="btn-secondary">
-          ✨ Muat Data Contoh Warung
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
+          <span>Muat Data Contoh Warung</span>
         </button>
       </div>
       <p class="hint">Stok berkurang otomatis tiap terjual. Batas menipis: 5.</p>
