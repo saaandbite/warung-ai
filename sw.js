@@ -9,7 +9,7 @@
 // semua file dalam satu sesi berasal dari deployment yang sama saat
 // online; cache dipakai hanya bila tidak ada internet.
 
-const CACHE_NAME = 'warung-ai-v6';
+const CACHE_NAME = 'warung-ai-v7';
 const APP_SHELL = [
   './',
   './index.html',

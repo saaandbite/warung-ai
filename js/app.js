@@ -128,6 +128,7 @@ if (clearCartBtn) {
     if (confirm('Kosongkan keranjang belanja?')) {
       cart.clear();
       renderCart();
+  updatePaySpelled(0);
       renderProducts();
     }
   });
@@ -240,6 +241,7 @@ async function renderProducts() {
       if (currentQty < p.stock) {
         cart.set(p.id, currentQty + 1);
         renderCart();
+  updatePaySpelled(0);
         renderProducts();
       } else {
         alert(`Stok ${p.name} tidak mencukupi (sisa ${p.stock}).`);
@@ -258,9 +260,46 @@ async function renderProducts() {
   });
 }
 
-function updateChangeAmount() {
+// Konversi angka nominal ke ejaan kalimat dalam Bahasa Indonesia (Terbilang)
+export function terbilang(n) {
+  const nilaiBulat = Math.floor(Math.abs(Number(n) || 0));
+  if (nilaiBulat === 0) return 'Nol rupiah';
+
+  const angka = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+
+  function sebut(nilai) {
+    if (nilai < 12) return angka[nilai];
+    if (nilai < 20) return sebut(nilai - 10) + ' belas';
+    if (nilai < 100) return sebut(Math.floor(nilai / 10)) + ' puluh ' + sebut(nilai % 10);
+    if (nilai < 200) return 'seratus ' + sebut(nilai - 100);
+    if (nilai < 1000) return sebut(Math.floor(nilai / 100)) + ' ratus ' + sebut(nilai % 100);
+    if (nilai < 2000) return 'seribu ' + sebut(nilai - 1000);
+    if (nilai < 1000000) return sebut(Math.floor(nilai / 1000)) + ' ribu ' + sebut(nilai % 1000);
+    if (nilai < 1000000000) return sebut(Math.floor(nilai / 1000000)) + ' juta ' + sebut(nilai % 1000000);
+    if (nilai < 1000000000000) return sebut(Math.floor(nilai / 1000000000)) + ' miliar ' + sebut(nilai % 1000000000);
+    return '';
+  }
+
+  const hasil = sebut(nilaiBulat).replace(/\s+/g, ' ').trim();
+  return hasil ? hasil.charAt(0).toUpperCase() + hasil.slice(1) + ' rupiah' : 'Nol rupiah';
+}
+
+function getPaidAmount() {
   const payInput = document.getElementById('pay-amount');
-  const paid = Number(payInput.value) || 0;
+  if (!payInput) return 0;
+  const digits = String(payInput.value || '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+function updatePaySpelled(amount) {
+  const paySpelled = document.getElementById('pay-spelled');
+  if (paySpelled) {
+    paySpelled.textContent = terbilang(amount);
+  }
+}
+
+function updateChangeAmount() {
+  const paid = getPaidAmount();
   const changeBox = document.getElementById('change-box');
   const changeAmountEl = document.getElementById('change-amount');
   const checkoutBtn = document.getElementById('checkout-btn');
@@ -292,16 +331,39 @@ function updateChangeAmount() {
   }
 }
 
+// Format input dengan pemisah ribuan titik (.) saat kasir mengetik nominal
+const payInputElement = document.getElementById('pay-amount');
+if (payInputElement) {
+  payInputElement.addEventListener('input', (e) => {
+    const rawDigits = e.target.value.replace(/\D/g, '');
+    if (!rawDigits) {
+      e.target.value = '';
+      updatePaySpelled(0);
+      updateChangeAmount();
+      return;
+    }
+    const num = Number(rawDigits);
+    e.target.value = num.toLocaleString('id-ID');
+    updatePaySpelled(num);
+    updateChangeAmount();
+  });
+}
+
 // Tombol Uang Cepat (Quick Cash Presets)
 document.querySelectorAll('.btn-quick-cash').forEach((btn) => {
   btn.addEventListener('click', () => {
     const amountType = btn.dataset.amount;
     const payInput = document.getElementById('pay-amount');
+    let amount = 0;
     if (amountType === 'exact') {
-      payInput.value = currentCartTotal;
+      amount = currentCartTotal;
     } else {
-      payInput.value = Number(amountType);
+      amount = Number(amountType);
     }
+    if (payInput) {
+      payInput.value = amount ? amount.toLocaleString('id-ID') : '';
+    }
+    updatePaySpelled(amount);
     updateChangeAmount();
   });
 });
@@ -370,6 +432,7 @@ async function renderCart() {
         cart.delete(id);
       }
       renderCart();
+  updatePaySpelled(0);
       renderProducts();
     });
 
@@ -387,6 +450,7 @@ async function renderCart() {
       if (qty < p.stock) {
         cart.set(id, qty + 1);
         renderCart();
+  updatePaySpelled(0);
         renderProducts();
       }
     });
@@ -399,6 +463,7 @@ async function renderCart() {
     delBtn.addEventListener('click', () => {
       cart.delete(id);
       renderCart();
+  updatePaySpelled(0);
       renderProducts();
     });
 
@@ -420,14 +485,13 @@ async function renderCart() {
   updateChangeAmount();
 }
 
-document.getElementById('pay-amount').addEventListener('input', updateChangeAmount);
 
 document.getElementById('checkout-btn').addEventListener('click', async () => {
   if (cart.size === 0) {
     alert('Keranjang masih kosong!');
     return;
   }
-  const paid = Number(document.getElementById('pay-amount').value) || 0;
+  const paid = getPaidAmount();
   if (paid < currentCartTotal) {
     alert(`Uang pembayaran kurang Rp ${Number(currentCartTotal - paid).toLocaleString('id-ID')}.`);
     return;
@@ -437,7 +501,10 @@ document.getElementById('checkout-btn').addEventListener('click', async () => {
     const sale = await recordSale([...cart.entries()], paid);
     cart.clear();
     await renderCart();
-    document.getElementById('pay-amount').value = '';
+  updatePaySpelled(0);
+    const payInput = document.getElementById('pay-amount');
+    if (payInput) payInput.value = '';
+    updatePaySpelled(0);
     document.getElementById('change-amount').textContent = 'Rp 0';
     await renderProducts();
     await renderStock();
@@ -588,4 +655,5 @@ document.getElementById('pull-btn').addEventListener('click', async () => {
   renderProducts();
   renderStock();
   renderCart();
+  updatePaySpelled(0);
 })();

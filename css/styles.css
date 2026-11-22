@@ -688,6 +688,30 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.12);
 }
 
+/* Hilangkan tombol spinner panah naik/turun bawaan browser */
+.pay-input-wrapper input::-webkit-outer-spin-button,
+.pay-input-wrapper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pay-input-wrapper input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.pay-spelled-text {
+  font-size: 0.8rem;
+  color: var(--primary-text);
+  font-style: italic;
+  font-weight: 600;
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 20px;
+  line-height: 1.35;
+  transition: all 0.2s ease;
+}
+
 .change-box {
   background: #f8fafc;
   border: 1px solid var(--border);
