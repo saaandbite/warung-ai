@@ -8,5 +8,9 @@ export const firebaseConfig = {
   storageBucket: "warung-ai-hybrid.firebasestorage.app",
   messagingSenderId: "1026774936149",
   appId: "1:1026774936149:web:3c0cbddaea6dca154b42dc",
-  measurementId: "G-G1JLWQW59Y"
+  measurementId: "G-G1JLWQW59Y",
+
+  // Fraud Defense (reCAPTCHA Enterprise) site key untuk Firebase App Check (publik).
+  // Dibuat Haris 23 Nov 2026, didaftarkan di Firebase Console > App Check > Apps.
+  appCheckSiteKey: "6Lehcy4uAAAAALnhE6KMEsHPhcSxBpp9Dpl4gIsB",
 };

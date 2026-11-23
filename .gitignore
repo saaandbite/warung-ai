@@ -7,6 +7,9 @@ build/
 # (public client config, bukan rahasia server). Jangan pernah commit
 # service account JSON (.env, kunci privat) ke repo ini.
 
+# App Check debug token lokal (jangan pernah commit token debug)
+js/appcheck-debug.local.js
+
 # Firebase local files
 .firebase/
 firebase-debug.log

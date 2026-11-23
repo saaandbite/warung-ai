@@ -9,7 +9,7 @@
 // semua file dalam satu sesi berasal dari deployment yang sama saat
 // online; cache dipakai hanya bila tidak ada internet.
 
-const CACHE_NAME = 'warung-ai-v7';
+const CACHE_NAME = 'warung-ai-v8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const APP_SHELL = [
   './js/app.js',
   './js/db.js',
   './js/ai.js',
+  './js/firebase.js',
   './js/sync.js',
   './manifest.json',
 ];
