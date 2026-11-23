@@ -16,7 +16,7 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **1.2. Q&A cloud end-to-end (24–25 Nov) — Agung:** tanya-jawab grounded dari data toko + badge `inferenceSource` yang jujur (Nano/Cloud/Template).
 - [ ] **1.3. Penasihat Kulakan (26 Nov) — Agung + Ahmad:** satu panggilan model, JSON terstruktur (`responseSchema`), validasi pasca-model di JS (hitung ulang angka, potong dari bawah bila melebihi budget, buang item di luar katalog), kartu UI + angka rupiah yang dihitung kode.
 - [ ] **1.4. Go/no-go AI (26 Nov malam) — Semua:** kriteria cloud-only — satu pertanyaan kulakan dijawab model dari data toko yang baru diubah, badge benar, di HP. Nano bukan kriteria go.
-- [ ] **1.5. App Check + `firestore.rules` (23–24 Nov) — Ahmad (+ Agung):** App Check SDK + reCAPTCHA v3 (gratis, tanpa billing) + debug token hanya untuk localhost (tidak pernah di-commit) + tulis `firestore.rules` + enforcement di konsol + commit keduanya.
+- [ ] **1.5. App Check + `firestore.rules` (23–24 Nov) — Ahmad (+ Agung):** MERGED ke `main` 23 Nov 18:44 (PR #1, commit ba77967) — kode App Check Fraud Defense + `firestore.rules` + site key sudah live di Vercel. Sisa: daftarkan debug token localhost di konsol (Haris), deploy `firestore.rules` (`firebase deploy --only firestore:rules`), verifikasi sync live, baru nyalakan enforcement Firestore.
 - [x] **1.6. Hapus klaim palsu di UI (SELESAI 23 Nov) — Haris:** hapus "Offline: Gemini Nano 4..." + placeholder "minggu ini" → "hari ini" + badge status model yang jujur. (Hint + placeholder + teks loading sudah diperbaiki; badge model menyusul bersama penerapan AI Logic.)
 - [ ] **1.7. Verifikasi kuota cloud (23–24 Nov) — Agung:** cek kuota aktual Flash-Lite di AI Studio sebelum memutuskan final.
 

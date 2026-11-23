@@ -1,33 +1,13 @@
 // Warung AI — sinkronisasi cloud (Firestore).
 //
-// CATATAN: file ini TIDAK mengimpor firebase-config.js maupun Firebase
-// SDK secara statis — keduanya dimuat malas (lazy) di getDbInstance().
-// Kalau config tidak ada, import statis akan membuat SELURUH aplikasi
-// gagal dimuat. Tanpa config, sync/pull melempar pesan yang jelas dan
-// data tetap aman di IndexedDB; kasir/stok/AI lokal tetap jalan.
+// Firebase app + App Check + Firestore diinisialisasi lewat js/firebase.js
+// (lazy). Tanpa config/SDK, sync/pull melempar pesan yang jelas dan data
+// tetap aman di IndexedDB; kasir/stok/AI lokal tetap jalan.
 import { getSyncQueue, getProduct, getSale, clearSyncItems, upsertProductFromCloud, upsertSaleFromCloud } from './db.js';
-
-let db = null;
-let firestoreLib = null;
+import { getFirestoreDb } from './firebase.js';
 
 async function getDbInstance() {
-  if (db) return { firestore: db, ...firestoreLib };
-
-  let firebaseConfig;
-  try {
-    ({ firebaseConfig } = await import('./firebase-config.js'));
-  } catch {
-    throw new Error('Firebase belum dikonfigurasi di deployment ini. Data tetap tersimpan lokal dan akan dikirim setelah konfigurasi ditambahkan.');
-  }
-
-  // Firebase SDK modular dari CDN resmi Google — dimuat hanya saat sync/pull.
-  const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js');
-  const { getFirestore, doc, setDoc, collection, getDocs } = await import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js');
-
-  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  firestoreLib = { doc, setDoc, collection, getDocs };
-  return { firestore: db, ...firestoreLib };
+  return getFirestoreDb();
 }
 
 export async function syncNow() {
