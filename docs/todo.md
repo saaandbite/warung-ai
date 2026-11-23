@@ -12,8 +12,8 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 
 ## 1. AI Logic + App Check (gerbang utama — dikerjakan dulu)
 
-- [ ] **1.1. Spike AI Logic (23 Nov malam) — Agung:** skeleton `ai.js` baru + satu panggilan cloud pertama + mulai unduh Nano di laptop perekam.
-- [ ] **1.2. Q&A cloud end-to-end (24 Nov) — Agung:** tanya-jawab grounded dari data toko + badge `inferenceSource` yang jujur (Nano/Cloud/Template).
+- [ ] **1.1. Coba panggilan AI pertama (23–24 Nov, kelar jam 20.00) — Agung:** skeleton `ai.js` baru + satu panggilan cloud pertama + mulai unduh Nano di laptop perekam.
+- [ ] **1.2. Q&A cloud end-to-end (24–25 Nov) — Agung:** tanya-jawab grounded dari data toko + badge `inferenceSource` yang jujur (Nano/Cloud/Template).
 - [ ] **1.3. Penasihat Kulakan (26 Nov) — Agung + Ahmad:** satu panggilan model, JSON terstruktur (`responseSchema`), validasi pasca-model di JS (hitung ulang angka, potong dari bawah bila melebihi budget, buang item di luar katalog), kartu UI + angka rupiah yang dihitung kode.
 - [ ] **1.4. Go/no-go AI (26 Nov malam) — Semua:** kriteria cloud-only — satu pertanyaan kulakan dijawab model dari data toko yang baru diubah, badge benar, di HP. Nano bukan kriteria go.
 - [ ] **1.5. App Check + `firestore.rules` (23–24 Nov) — Ahmad (+ Agung):** App Check SDK + reCAPTCHA v3 (gratis, tanpa billing) + debug token hanya untuk localhost (tidak pernah di-commit) + tulis `firestore.rules` + enforcement di konsol + commit keduanya.
@@ -72,7 +72,7 @@ Foto rak → hitung stok · anomali mandiri · penasihat harga/margin (mandiri) 
 
 | Hari | Fokus | PIC |
 |---|---|---|
-| Sen 23 Nov (malam) | Kickoff keputusan (§0); spike AI Logic; App Check draft; hapus klaim palsu; XSS + tanggal WIB | Semua |
+| Sen 23 Nov (malam) | Kickoff keputusan (§0); coba panggilan AI pertama (boleh geser ke 24 Nov); App Check draft; hapus klaim palsu; XSS + tanggal WIB | Semua |
 | Sel 24 Nov (malam) | Q&A cloud + badge; antrean atomik + seed 14 hari; checkout guard; ikon PWA; verifikasi kuota | Agung/Ahmad/Syuhada/Haris |
 | Rab 25 Nov | LIBUR (deadline UiPath + Hari Guru). Review 30 menit: Nano sudah terunduh? Q&A jalan? Seed realistis? | Haris |
 | Kam 26 Nov | Penasihat Kulakan penuh; karantina per-item; struk + restock; uji end-to-end; malam: GO/NO-GO AI | Semua |
