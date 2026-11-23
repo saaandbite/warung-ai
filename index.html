@@ -91,6 +91,8 @@
               <strong id="change-amount" class="change-value">Rp 0</strong>
             </div>
 
+            <div id="change-suggestion" class="change-suggestion-box" style="display: none;"></div>
+
             <button id="checkout-btn" type="button" class="btn-checkout" disabled>
               <span>Simpan Penjualan</span>
             </button>
@@ -102,22 +104,35 @@
     <section id="tab-stok" class="tab">
       <div class="section-header-row">
         <h2>Stok Barang</h2>
-        <button id="seed-sample-btn" type="button" class="btn-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
-          <span>Muat Data Contoh Warung</span>
-        </button>
-        <button id="seed-sales-btn" type="button" class="btn-secondary">
-          <span>Isi Penjualan Contoh 14 Hari</span>
-        </button>
+        <div class="header-action-buttons">
+          <button id="seed-sample-btn" type="button" class="btn-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
+            <span>Muat Data Contoh Warung</span>
+          </button>
+          <button id="seed-sales-btn" type="button" class="btn-secondary">
+            <span>Isi Penjualan Contoh 14 Hari</span>
+          </button>
+        </div>
       </div>
-      <p class="hint">Stok berkurang otomatis tiap terjual. Batas menipis: 5.</p>
-      <form id="add-product-form">
-        <input name="name" type="text" placeholder="Nama barang" required />
-        <input name="price" type="number" min="0" placeholder="Harga (Rp)" required />
-        <input name="stock" type="number" min="0" placeholder="Stok awal" required />
-        <button type="submit">Tambah Barang</button>
+      <p class="hint">Stok berkurang otomatis tiap kasir checkout. Peringatan otomatis muncul bila stok &le; 5.</p>
+      
+      <form id="add-product-form" class="add-product-form">
+        <h3>Tambah Barang Baru</h3>
+        <div class="add-product-grid">
+          <input name="name" type="text" placeholder="Nama barang (mis. Indomie Goreng)" required autocomplete="off" />
+          <input name="price" type="number" min="100" step="100" placeholder="Harga Jual (Rp)" required />
+          <input name="stock" type="number" min="0" placeholder="Stok awal" required />
+          <button type="submit" id="add-product-btn">Tambah Barang</button>
+        </div>
       </form>
-      <ul id="stock-list"></ul>
+
+      <div class="stock-filter-bar">
+        <button type="button" class="stock-filter-chip active" data-filter="all">Semua (<span id="stock-count-all">0</span>)</button>
+        <button type="button" class="stock-filter-chip" data-filter="low">Menipis (&le;5) (<span id="stock-count-low">0</span>)</button>
+        <button type="button" class="stock-filter-chip" data-filter="empty">Habis (0) (<span id="stock-count-empty">0</span>)</button>
+      </div>
+
+      <div id="stock-list" class="stock-cards-list"></div>
     </section>
 
     <section id="tab-ai" class="tab">
@@ -135,14 +150,98 @@
     </section>
 
     <section id="tab-ringkasan" class="tab">
-      <h2>Ringkasan</h2>
-      <p class="hint">Penjualan hari ini dan status sinkronisasi cloud.</p>
-      <p>Penjualan hari ini: <strong id="today-total">Rp 0</strong></p>
-      <p>Transaksi hari ini: <strong id="today-count">0</strong></p>
-      <p>Menunggu sinkronisasi: <strong id="pending-sync">0</strong> item</p>
-      <button id="sync-now-btn" type="button">Sinkronkan sekarang</button>
-      <button id="pull-btn" type="button">Tarik data dari cloud</button>
+      <h2>Ringkasan Toko</h2>
+      <p class="hint">Aktivitas penjualan hari ini dan status sinkronisasi ke cloud.</p>
+
+      <div class="summary-cards-grid">
+        <div class="summary-metric-card">
+          <span class="summary-metric-label">Penjualan Hari Ini</span>
+          <strong id="today-total" class="summary-metric-val">Rp 0</strong>
+          <span class="summary-metric-sub">Total omzet toko</span>
+        </div>
+        <div class="summary-metric-card">
+          <span class="summary-metric-label">Transaksi Hari Ini</span>
+          <strong id="today-count" class="summary-metric-val">0</strong>
+          <span class="summary-metric-sub">Jumlah nota tercatat</span>
+        </div>
+        <div class="summary-metric-card">
+          <span class="summary-metric-label">Menunggu Sinkron</span>
+          <strong id="pending-sync" class="summary-metric-val">0 item</strong>
+          <span class="summary-metric-sub">Antrean lokal</span>
+        </div>
+      </div>
+
+      <div class="sync-status-row">
+        <span id="last-sync-badge" class="badge-last-sync">Terakhir sinkron: Belum pernah</span>
+      </div>
+
+      <div class="summary-actions-row">
+        <button id="sync-now-btn" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span>Sinkronkan Sekarang</span>
+        </button>
+        <button id="pull-btn" type="button" class="btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          <span>Tarik Data dari Cloud</span>
+        </button>
+      </div>
     </section>
+  </main>
+
+  <!-- Modal Struk Transaksi (Thermal 58/80mm Ready) -->
+  <div id="receipt-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="receipt-title">
+    <div class="receipt-card">
+      <div class="receipt-header">
+        <h3 id="receipt-title">WARUNG AI</h3>
+        <p class="receipt-subtitle">Kasir Offline-First Warung Indonesia</p>
+        <div class="receipt-meta">
+          <span id="receipt-no">#NOTA-0000</span>
+          <span id="receipt-datetime">23/11/2026, 12:00</span>
+        </div>
+      </div>
+      <div class="receipt-divider"></div>
+      <div id="receipt-items-list" class="receipt-items-list"></div>
+      <div class="receipt-divider"></div>
+      <div class="receipt-summary">
+        <div class="receipt-row">
+          <span>Total Tagihan:</span>
+          <strong id="receipt-total">Rp 0</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Uang Diterima:</span>
+          <span id="receipt-paid">Rp 0</span>
+        </div>
+        <div class="receipt-row receipt-change-row">
+          <span>Kembalian:</span>
+          <strong id="receipt-change">Rp 0</strong>
+        </div>
+        <div id="receipt-change-spelled" class="receipt-spelled">Nol rupiah</div>
+      </div>
+      <div class="receipt-footer-msg">
+        Terima kasih atas kunjungan Anda!<br>Semoga rezeki lancar dan berkah.
+      </div>
+      <div class="receipt-actions no-print">
+        <button id="print-receipt-btn" type="button" class="btn-receipt-action">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          <span>Cetak Struk</span>
+        </button>
+        <button id="wa-receipt-btn" type="button" class="btn-receipt-action btn-wa">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span>Kirim WA</span>
+        </button>
+        <button id="copy-receipt-btn" type="button" class="btn-receipt-action btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Salin Nota</span>
+        </button>
+      </div>
+      <button id="close-receipt-btn" type="button" class="btn-new-sale no-print">
+        <span>Transaksi Baru</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
   </main>
 
   <nav class="tab-bar">

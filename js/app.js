@@ -1,8 +1,52 @@
 // Warung AI — entry point.
 // Menangani navigasi tab, status online/offline, dan registrasi Service Worker.
 
-import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts, seedSampleSales } from './db.js';
+import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts, seedSampleSales, updateProductStock, addProduct } from './db.js';
 import { askAI, dailySummary } from './ai.js';
+
+// Helper sanitasi HTML untuk mencegah Stored-XSS & reflected-XSS
+export function escapeHtml(str) {
+  if (str == null) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// Sistem Notifikasi Toast Modern (menggantikan alert() yang memblokir alur demo)
+export function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) {
+    alert(message);
+    return;
+  }
+  const toast = document.createElement('div');
+  toast.className = `toast-item toast-${type}`;
+
+  let iconSvg = '';
+  if (type === 'success') {
+    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+  } else if (type === 'error') {
+    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>`;
+  } else if (type === 'warning') {
+    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>`;
+  } else {
+    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>`;
+  }
+
+  toast.innerHTML = `
+    <span class="toast-icon">${iconSvg}</span>
+    <span class="toast-text">${escapeHtml(message)}</span>
+  `;
+
+  toast.addEventListener('click', () => toast.remove());
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 250);
+  }, 3500);
+}
 
 // sync.js dimuat malas (lazy): modul itu butuh firebase-config.js +
 // Firebase CDN — import statis di sini akan membuat SELURUH aplikasi
@@ -67,6 +111,7 @@ window.addEventListener('online', async () => {
     const n = await syncNow();
     if (n > 0) {
       console.log(`Auto-synced ${n} item ke Firestore.`);
+      recordLastSyncTime();
     }
   } catch (err) {
     console.warn('Auto-sync status:', err.message);
@@ -128,13 +173,13 @@ if (clearCartBtn) {
     if (confirm('Kosongkan keranjang belanja?')) {
       cart.clear();
       renderCart();
-  updatePaySpelled(0);
+      updatePaySpelled(0);
       renderProducts();
     }
   });
 }
 
-// Render Katalog Produk dalam Bentuk Card Modern
+// Render Katalog Produk dalam Bentuk Card Modern (Aman dari Stored-XSS)
 async function renderProducts() {
   const list = document.getElementById('product-list');
   const allProducts = await listProducts();
@@ -170,12 +215,12 @@ async function renderProducts() {
       : `${allProducts.length} Produk`;
   }
 
-  // Jika hasil pencarian tidak ditemukan
+  // Jika hasil pencarian tidak ditemukan (XSS-safe via escapeHtml)
   if (filteredProducts.length === 0) {
     list.innerHTML = `
       <div class="catalog-empty-state">
         <div class="catalog-empty-icon">${SVG_SEARCH}</div>
-        <p class="empty" style="padding: 0; margin: 0;">Tidak ada barang yang cocok dengan kata "${searchQuery}".</p>
+        <p class="empty" style="padding: 0; margin: 0;">Tidak ada barang yang cocok dengan kata "${escapeHtml(searchQuery)}".</p>
         <button id="reset-search-btn" type="button" class="btn-secondary">
           Tampilkan Semua Produk
         </button>
@@ -228,7 +273,7 @@ async function renderProducts() {
         <div class="card-icon">${SVG_PACKAGE}</div>
         ${stockBadgeHtml}
       </div>
-      <div class="card-name" title="${p.name}">${p.name}</div>
+      <div class="card-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
       <div class="card-bottom">
         <span class="card-price">${formatRupiah(p.price)}</span>
         ${cartBadgeHtml}
@@ -241,10 +286,10 @@ async function renderProducts() {
       if (currentQty < p.stock) {
         cart.set(p.id, currentQty + 1);
         renderCart();
-  updatePaySpelled(0);
+        updatePaySpelled(0);
         renderProducts();
       } else {
-        alert(`Stok ${p.name} tidak mencukupi (sisa ${p.stock}).`);
+        showToast(`Stok ${p.name} tidak mencukupi (sisa ${p.stock}).`, 'warning');
       }
     };
 
@@ -298,6 +343,45 @@ function updatePaySpelled(amount) {
   }
 }
 
+// Saran Pembulatan Kembalian (3.5)
+function updateChangeSuggestion(total, paid) {
+  const suggestionEl = document.getElementById('change-suggestion');
+  if (!suggestionEl) return;
+
+  if (total <= 0 || paid <= total) {
+    suggestionEl.style.display = 'none';
+    suggestionEl.textContent = '';
+    return;
+  }
+
+  const change = paid - total;
+
+  // Jika kembalian sudah berupa pecahan bersih bulat 10.000 / 50.000, tidak perlu saran
+  if (change % 10000 === 0) {
+    suggestionEl.style.display = 'none';
+    suggestionEl.textContent = '';
+    return;
+  }
+
+  // Hitung pembulatan ke atas terdekat (kelipatan 5.000 atau 10.000)
+  let targetChange = Math.ceil(change / 5000) * 5000;
+  if (targetChange === change) {
+    targetChange = Math.ceil(change / 10000) * 10000;
+  }
+
+  const extraNeeded = targetChange - change;
+  if (extraNeeded > 0 && extraNeeded <= 5000) {
+    suggestionEl.innerHTML = `
+      <span>💡</span>
+      <span><strong>Saran Kasir:</strong> Minta tambahan <strong>${formatRupiah(extraNeeded)}</strong> dari pembeli agar kembalian genap <strong>${formatRupiah(targetChange)}</strong>.</span>
+    `;
+    suggestionEl.style.display = 'flex';
+  } else {
+    suggestionEl.style.display = 'none';
+    suggestionEl.textContent = '';
+  }
+}
+
 function updateChangeAmount() {
   const paid = getPaidAmount();
   const changeBox = document.getElementById('change-box');
@@ -308,6 +392,7 @@ function updateChangeAmount() {
     if (changeBox) changeBox.classList.remove('shortage');
     if (changeAmountEl) changeAmountEl.textContent = 'Rp 0';
     if (checkoutBtn) checkoutBtn.disabled = true;
+    updateChangeSuggestion(0, 0);
     return;
   }
 
@@ -315,6 +400,7 @@ function updateChangeAmount() {
     if (changeBox) changeBox.classList.remove('shortage');
     if (changeAmountEl) changeAmountEl.textContent = 'Rp 0';
     if (checkoutBtn) checkoutBtn.disabled = true;
+    updateChangeSuggestion(currentCartTotal, 0);
     return;
   }
 
@@ -323,11 +409,13 @@ function updateChangeAmount() {
     if (changeBox) changeBox.classList.add('shortage');
     if (changeAmountEl) changeAmountEl.textContent = `Kurang ${formatRupiah(shortage)}`;
     if (checkoutBtn) checkoutBtn.disabled = true;
+    updateChangeSuggestion(currentCartTotal, paid);
   } else {
     const change = paid - currentCartTotal;
     if (changeBox) changeBox.classList.remove('shortage');
     if (changeAmountEl) changeAmountEl.textContent = formatRupiah(change);
     if (checkoutBtn) checkoutBtn.disabled = false;
+    updateChangeSuggestion(currentCartTotal, paid);
   }
 }
 
@@ -413,7 +501,7 @@ async function renderCart() {
     const info = document.createElement('div');
     info.className = 'cart-item-info';
     info.innerHTML = `
-      <div class="cart-item-title" title="${p.name}">${p.name}</div>
+      <div class="cart-item-title" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
       <div class="cart-item-subtext">${formatRupiah(p.price)} × ${qty} = <strong>${formatRupiah(itemTotal)}</strong></div>
     `;
 
@@ -432,7 +520,7 @@ async function renderCart() {
         cart.delete(id);
       }
       renderCart();
-  updatePaySpelled(0);
+      updatePaySpelled(0);
       renderProducts();
     });
 
@@ -450,7 +538,7 @@ async function renderCart() {
       if (qty < p.stock) {
         cart.set(id, qty + 1);
         renderCart();
-  updatePaySpelled(0);
+        updatePaySpelled(0);
         renderProducts();
       }
     });
@@ -463,7 +551,7 @@ async function renderCart() {
     delBtn.addEventListener('click', () => {
       cart.delete(id);
       renderCart();
-  updatePaySpelled(0);
+      updatePaySpelled(0);
       renderProducts();
     });
 
@@ -485,32 +573,157 @@ async function renderCart() {
   updateChangeAmount();
 }
 
+// --- MODAL STRUK TRANSAKSI & CETAK THERMAL ---
+let currentActiveSale = null;
 
+function showReceiptModal(sale) {
+  currentActiveSale = sale;
+  const modal = document.getElementById('receipt-modal');
+  if (!modal) return;
+
+  const receiptNoEl = document.getElementById('receipt-no');
+  if (receiptNoEl) {
+    receiptNoEl.textContent = `#NOTA-${String(sale.id).padStart(4, '0')}`;
+  }
+
+  const d = sale.createdAt ? new Date(sale.createdAt) : new Date();
+  const dateStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+  const datetimeEl = document.getElementById('receipt-datetime');
+  if (datetimeEl) {
+    datetimeEl.textContent = `${dateStr}, ${timeStr}`;
+  }
+
+  const itemsContainer = document.getElementById('receipt-items-list');
+  if (itemsContainer) {
+    itemsContainer.innerHTML = '';
+    (sale.items || []).forEach((item) => {
+      const line = document.createElement('div');
+      line.className = 'receipt-item-line';
+      line.innerHTML = `
+        <div class="receipt-item-title-row">
+          <span>${escapeHtml(item.name)}</span>
+          <span>${formatRupiah(item.price * item.qty)}</span>
+        </div>
+        <div class="receipt-item-detail">
+          <span>${item.qty} × ${formatRupiah(item.price)}</span>
+        </div>
+      `;
+      itemsContainer.appendChild(line);
+    });
+  }
+
+  const elTotal = document.getElementById('receipt-total');
+  const elPaid = document.getElementById('receipt-paid');
+  const elChange = document.getElementById('receipt-change');
+  const elSpelled = document.getElementById('receipt-change-spelled');
+
+  if (elTotal) elTotal.textContent = formatRupiah(sale.total);
+  if (elPaid) elPaid.textContent = formatRupiah(sale.paid);
+  if (elChange) elChange.textContent = formatRupiah(sale.change);
+  if (elSpelled) elSpelled.textContent = terbilang(sale.change);
+
+  modal.style.display = 'flex';
+}
+
+function buildReceiptText(sale) {
+  if (!sale) return '';
+  const d = sale.createdAt ? new Date(sale.createdAt) : new Date();
+  const dateStr = d.toLocaleDateString('id-ID') + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+  const divider = '--------------------------------';
+  const lines = [
+    '*WARUNG AI*',
+    'Kasir Offline-First Warung Indonesia',
+    `No: #NOTA-${String(sale.id).padStart(4, '0')}`,
+    `Waktu: ${dateStr}`,
+    divider,
+  ];
+  (sale.items || []).forEach((it) => {
+    lines.push(`${it.name}`);
+    lines.push(`  ${it.qty} x ${formatRupiah(it.price)} = ${formatRupiah(it.price * it.qty)}`);
+  });
+  lines.push(divider);
+  lines.push(`Total Tagihan : ${formatRupiah(sale.total)}`);
+  lines.push(`Uang Diterima : ${formatRupiah(sale.paid)}`);
+  lines.push(`Kembalian     : ${formatRupiah(sale.change)} (${terbilang(sale.change)})`);
+  lines.push(divider);
+  lines.push('Terima kasih sudah belanja di Warung kami!');
+  return lines.join('\n');
+}
+
+// Cetak Struk (Thermal 58/80mm)
+document.getElementById('print-receipt-btn')?.addEventListener('click', () => {
+  window.print();
+});
+
+// Salin Teks Nota
+document.getElementById('copy-receipt-btn')?.addEventListener('click', async () => {
+  if (!currentActiveSale) return;
+  const text = buildReceiptText(currentActiveSale);
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Teks nota berhasil disalin ke clipboard!', 'success');
+  } catch (err) {
+    showToast('Gagal menyalin nota: ' + err.message, 'error');
+  }
+});
+
+// Bagikan via WhatsApp
+document.getElementById('wa-receipt-btn')?.addEventListener('click', () => {
+  if (!currentActiveSale) return;
+  const text = buildReceiptText(currentActiveSale);
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+});
+
+// Tombol Transaksi Baru di Struk
+document.getElementById('close-receipt-btn')?.addEventListener('click', () => {
+  const modal = document.getElementById('receipt-modal');
+  if (modal) modal.style.display = 'none';
+  currentActiveSale = null;
+  if (searchInput) searchInput.focus();
+});
+
+// Checkout Aman (2.3)
 document.getElementById('checkout-btn').addEventListener('click', async () => {
   if (cart.size === 0) {
-    alert('Keranjang masih kosong!');
+    showToast('Keranjang masih kosong!', 'warning');
     return;
   }
   const paid = getPaidAmount();
   if (paid < currentCartTotal) {
-    alert(`Uang pembayaran kurang Rp ${Number(currentCartTotal - paid).toLocaleString('id-ID')}.`);
+    showToast(`Uang pembayaran kurang ${formatRupiah(currentCartTotal - paid)}.`, 'error');
     return;
   }
 
+  const checkoutBtn = document.getElementById('checkout-btn');
+  checkoutBtn.disabled = true;
+  checkoutBtn.innerHTML = '<span>Menyimpan Transaksi...</span>';
+
   try {
     const sale = await recordSale([...cart.entries()], paid);
+
+    // Tampilkan modal struk
+    showReceiptModal(sale);
+
+    // Reset keranjang & input kasir
     cart.clear();
     await renderCart();
-  updatePaySpelled(0);
     const payInput = document.getElementById('pay-amount');
     if (payInput) payInput.value = '';
     updatePaySpelled(0);
-    document.getElementById('change-amount').textContent = 'Rp 0';
+    updateChangeAmount();
+
     await renderProducts();
     await renderStock();
-    alert(`Penjualan berhasil disimpan! Total: ${formatRupiah(sale.total)}, Kembalian: ${formatRupiah(sale.change)}.`);
+    await renderSummary();
+
+    showToast(`Penjualan berhasil disimpan! Kembalian: ${formatRupiah(sale.change)}`, 'success');
   } catch (err) {
-    alert(`Gagal menyimpan penjualan: ${err.message}`);
+    showToast(`Gagal menyimpan penjualan: ${err.message}`, 'error');
+  } finally {
+    checkoutBtn.disabled = false;
+    updateChangeAmount();
   }
 });
 
@@ -521,14 +734,15 @@ async function handleSeedProducts() {
   try {
     const addedCount = await seedSampleProducts();
     if (addedCount > 0) {
-      alert(`Berhasil menambahkan ${addedCount} produk contoh warung khas Indonesia!`);
+      showToast(`Berhasil menambahkan ${addedCount} produk contoh warung khas Indonesia!`, 'success');
     } else {
-      alert('Semua produk contoh sudah ada di daftar stok.');
+      showToast('Semua produk contoh sudah ada di daftar stok.', 'info');
     }
     await renderStock();
     await renderProducts();
+    await renderSummary();
   } catch (err) {
-    alert(`Gagal memuat produk contoh: ${err.message}`);
+    showToast(`Gagal memuat produk contoh: ${err.message}`, 'error');
   } finally {
     if (seedBtn) seedBtn.disabled = false;
   }
@@ -546,14 +760,15 @@ async function handleSeedSales() {
   try {
     const createdCount = await seedSampleSales();
     if (createdCount > 0) {
-      alert(`Berhasil mengisi ${createdCount} penjualan contoh untuk 14 hari terakhir. Data ini murni contoh untuk menguji AI.`);
+      showToast(`Berhasil mengisi ${createdCount} penjualan contoh untuk 14 hari terakhir.`, 'success');
     } else {
-      alert('Penjualan contoh 14 hari sudah ada, atau belum ada produk untuk dibuatkan riwayat.');
+      showToast('Penjualan contoh 14 hari sudah ada, atau belum ada produk.', 'info');
     }
     await renderStock();
     await renderProducts();
+    await renderSummary();
   } catch (err) {
-    alert(`Gagal mengisi penjualan contoh: ${err.message}`);
+    showToast(`Gagal mengisi penjualan contoh: ${err.message}`, 'error');
   } finally {
     if (seedSalesBtn) seedSalesBtn.disabled = false;
   }
@@ -564,39 +779,165 @@ if (seedSalesBtn) {
   seedSalesBtn.addEventListener('click', handleSeedSales);
 }
 
-// --- Stok: tambah produk + daftar stok ---
-document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+// --- Stok: filter bar, tambah produk aman, quick restock & daftar stok modern ---
+let currentStockFilter = 'all';
+
+document.querySelectorAll('.stock-filter-chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.stock-filter-chip').forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentStockFilter = chip.dataset.filter || 'all';
+    renderStock();
+  });
+});
+
+// Form Tambah Produk (Aman & Tervalidasi)
+document.getElementById('add-product-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
-  const { addProduct } = await import('./db.js');
-  await addProduct({
-    name: form.name.value.trim(),
-    price: Number(form.price.value),
-    stock: Number(form.stock.value),
-  });
-  form.reset();
-  await renderStock();
-  await renderProducts();
+  const submitBtn = document.getElementById('add-product-btn');
+  const name = form.name.value.trim();
+  const price = Number(form.price.value);
+  const stock = Number(form.stock.value);
+
+  if (!name) {
+    showToast('Nama barang tidak boleh kosong!', 'warning');
+    return;
+  }
+  if (isNaN(price) || price <= 0) {
+    showToast('Harga jual harus berupa angka lebih dari 0!', 'warning');
+    return;
+  }
+  if (isNaN(stock) || stock < 0) {
+    showToast('Stok awal tidak boleh negatif!', 'warning');
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    await addProduct({ name, price, stock });
+    form.reset();
+    showToast(`Produk "${name}" berhasil ditambahkan ke etalase!`, 'success');
+    await renderStock();
+    await renderProducts();
+    await renderSummary();
+  } catch (err) {
+    showToast('Gagal menambah produk: ' + err.message, 'error');
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 });
 
 async function renderStock() {
-  const ul = document.getElementById('stock-list');
+  const container = document.getElementById('stock-list');
+  if (!container) return;
   const products = await listProducts();
-  ul.innerHTML = '';
-  if (products.length === 0) {
-    ul.innerHTML = '<li class="empty">Belum ada barang di stok.</li>';
+
+  // Hitung jumlah untuk filter chips
+  const countAll = products.length;
+  const countLow = products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length;
+  const countEmpty = products.filter((p) => p.stock <= 0).length;
+
+  const elAll = document.getElementById('stock-count-all');
+  const elLow = document.getElementById('stock-count-low');
+  const elEmpty = document.getElementById('stock-count-empty');
+  if (elAll) elAll.textContent = String(countAll);
+  if (elLow) elLow.textContent = String(countLow);
+  if (elEmpty) elEmpty.textContent = String(countEmpty);
+
+  // Filter list
+  let filtered = products;
+  if (currentStockFilter === 'low') {
+    filtered = products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD);
+  } else if (currentStockFilter === 'empty') {
+    filtered = products.filter((p) => p.stock <= 0);
+  }
+
+  container.innerHTML = '';
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty" style="background:#fff; border-radius:10px; padding:24px; border:1px solid var(--border);">Tidak ada barang pada kategori ini.</div>';
     return;
   }
-  products.forEach((p) => {
-    const li = document.createElement('li');
-    li.textContent = `${p.name} — ${formatRupiah(p.price)} — stok ${p.stock}`;
-    if (p.stock <= LOW_STOCK_THRESHOLD) {
-      const warn = document.createElement('span');
-      warn.className = 'low-stock';
-      warn.textContent = ' — stok menipis!';
-      li.appendChild(warn);
+
+  filtered.forEach((p) => {
+    const row = document.createElement('div');
+    row.className = 'stock-item-row';
+
+    let badgeClass = 'safe';
+    let badgeText = `Stok: ${p.stock}`;
+    if (p.stock <= 0) {
+      badgeClass = 'empty';
+      badgeText = 'Habis';
+    } else if (p.stock <= LOW_STOCK_THRESHOLD) {
+      badgeClass = 'low';
+      badgeText = `Menipis (${p.stock})`;
     }
-    ul.appendChild(li);
+
+    row.innerHTML = `
+      <div class="stock-item-main">
+        <div class="card-icon">${SVG_PACKAGE}</div>
+        <div class="stock-item-info">
+          <div class="stock-item-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</div>
+          <div class="stock-item-price">${formatRupiah(p.price)}</div>
+        </div>
+      </div>
+      <div class="stock-item-status-col">
+        <span class="stock-badge-pill ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="stock-quick-actions">
+        <button type="button" class="btn-stock-qty" data-id="${p.id}" data-add="1" title="Tambah 1 stok">+1</button>
+        <button type="button" class="btn-stock-qty" data-id="${p.id}" data-add="5" title="Tambah 5 stok">+5</button>
+        <button type="button" class="btn-stock-qty" data-id="${p.id}" data-add="10" title="Tambah 10 stok">+10</button>
+        <button type="button" class="btn-stock-custom" data-id="${p.id}" title="Input jumlah stok manual">+ Stok</button>
+      </div>
+    `;
+
+    // Handler tombol cepat +1, +5, +10
+    row.querySelectorAll('.btn-stock-qty').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const addQty = Number(btn.dataset.add);
+        btn.disabled = true;
+        try {
+          const updated = await updateProductStock(p.id, addQty);
+          showToast(`Stok ${updated.name} berhasil ditambah +${addQty} (kini ${updated.stock})`, 'success');
+          await renderStock();
+          await renderProducts();
+          await renderSummary();
+        } catch (err) {
+          showToast('Gagal update stok: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // Handler tombol + Stok manual
+    const customBtn = row.querySelector('.btn-stock-custom');
+    if (customBtn) {
+      customBtn.addEventListener('click', async () => {
+        const input = prompt(`Tambah stok untuk "${p.name}" (sisa stok: ${p.stock}):`, '5');
+        if (!input) return;
+        const num = parseInt(input, 10);
+        if (isNaN(num) || num <= 0) {
+          showToast('Masukkan jumlah penambahan stok yang valid!', 'warning');
+          return;
+        }
+        customBtn.disabled = true;
+        try {
+          const updated = await updateProductStock(p.id, num);
+          showToast(`Stok ${updated.name} berhasil ditambah +${num} (kini ${updated.stock})`, 'success');
+          await renderStock();
+          await renderProducts();
+          await renderSummary();
+        } catch (err) {
+          showToast('Gagal update stok: ' + err.message, 'error');
+        } finally {
+          customBtn.disabled = false;
+        }
+      });
+    }
+
+    container.appendChild(row);
   });
 }
 
@@ -624,26 +965,56 @@ document.getElementById('summary-btn').addEventListener('click', async () => {
   }
 });
 
-// --- Ringkasan + sinkronisasi ---
+// --- Ringkasan Toko + Sinkronisasi (5.2 & 5.4) ---
+function updateLastSyncDisplay() {
+  const badge = document.getElementById('last-sync-badge');
+  if (!badge) return;
+  const lastSync = localStorage.getItem('warung_last_sync');
+  if (lastSync) {
+    badge.textContent = `Terakhir sinkron: ${lastSync}`;
+    badge.style.color = '#15803d';
+  } else {
+    badge.textContent = 'Terakhir sinkron: Belum pernah';
+    badge.style.color = '#64748b';
+  }
+}
+
+function recordLastSyncTime() {
+  const d = new Date();
+  const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+  localStorage.setItem('warung_last_sync', timeStr);
+  updateLastSyncDisplay();
+}
+
 async function renderSummary() {
   const { total, count } = await getTodaySummary();
-  document.getElementById('today-total').textContent = formatRupiah(total);
-  document.getElementById('today-count').textContent = String(count);
-  document.getElementById('pending-sync').textContent = String(await getPendingSyncCount());
+  const pendingCount = await getPendingSyncCount();
+
+  const elTotal = document.getElementById('today-total');
+  const elCount = document.getElementById('today-count');
+  const elPending = document.getElementById('pending-sync');
+
+  if (elTotal) elTotal.textContent = formatRupiah(total);
+  if (elCount) elCount.textContent = `${count} nota`;
+  if (elPending) elPending.textContent = `${pendingCount} item`;
+
+  updateLastSyncDisplay();
 }
 
 document.getElementById('sync-now-btn').addEventListener('click', async () => {
   const btn = document.getElementById('sync-now-btn');
   btn.disabled = true;
-  btn.textContent = 'Menyinkronkan…';
+  const prevText = btn.innerHTML;
+  btn.innerHTML = '<span>Menyinkronkan…</span>';
   try {
     const n = await syncNow();
-    alert(`${n} item berhasil disinkronkan ke Firestore.`);
+    recordLastSyncTime();
+    showToast(`${n} item berhasil disinkronkan ke Firestore!`, 'success');
   } catch (err) {
-    alert(`Sinkronisasi gagal: ${err.message}`);
+    showToast(`Sinkronisasi gagal: ${err.message}`, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Sinkronkan sekarang';
+    btn.innerHTML = prevText;
     await renderSummary();
   }
 });
@@ -651,17 +1022,19 @@ document.getElementById('sync-now-btn').addEventListener('click', async () => {
 document.getElementById('pull-btn').addEventListener('click', async () => {
   const btn = document.getElementById('pull-btn');
   btn.disabled = true;
-  btn.textContent = 'Menarik data…';
+  const prevText = btn.innerHTML;
+  btn.innerHTML = '<span>Menarik data…</span>';
   try {
     const pulled = await pullFromCloud();
-    alert(`Berhasil menarik ${pulled.products} produk baru, ${pulled.updatedProducts} produk diperbarui, dan ${pulled.sales} penjualan dari cloud.`);
+    recordLastSyncTime();
+    showToast(`Berhasil menarik ${pulled.products} produk baru, ${pulled.updatedProducts} produk diperbarui, dan ${pulled.sales} penjualan dari cloud!`, 'success');
     await renderProducts();
     await renderStock();
   } catch (err) {
-    alert(`Tarik data gagal: ${err.message}`);
+    showToast(`Tarik data gagal: ${err.message}`, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Tarik data dari cloud';
+    btn.innerHTML = prevText;
     await renderSummary();
   }
 });
@@ -681,4 +1054,5 @@ document.getElementById('pull-btn').addEventListener('click', async () => {
   renderStock();
   renderCart();
   updatePaySpelled(0);
+  renderSummary();
 })();

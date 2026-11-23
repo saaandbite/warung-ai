@@ -144,7 +144,7 @@ function mulberry32(seed) {
 }
 
 // Tanggal lokal (WIB) — JANGAN pakai toISOString, itu UTC dan bisa geser hari.
-function localDateString(d) {
+export function localDateString(d = new Date()) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -261,50 +261,129 @@ export async function seedSampleSales(days = 14) {
   return created;
 }
 
+// --- Restock cepat (Quick Restock) ---
+// Menambah atau mengurangi stok produk dan mencatat ke syncQueue untuk cloud.
+export async function updateProductStock(id, addedQty) {
+  const numAdded = Number(addedQty);
+  if (isNaN(numAdded) || numAdded === 0) {
+    throw new Error('Jumlah perubahan stok harus berupa angka bukan nol.');
+  }
+
+  const updated = await tx(['products', 'syncQueue'], 'readwrite', (t) => {
+    const productsStore = t.objectStore('products');
+    const syncStore = t.objectStore('syncQueue');
+
+    return new Promise((resolve, reject) => {
+      const getReq = productsStore.get(Number(id));
+      getReq.onsuccess = () => {
+        const product = getReq.result;
+        if (!product) {
+          reject(new Error(`Produk #${id} tidak ditemukan.`));
+          return;
+        }
+        const newStock = Math.max(0, (product.stock || 0) + numAdded);
+        const updatedProduct = {
+          ...product,
+          stock: newStock,
+          updatedAt: Date.now(),
+        };
+        const putReq = productsStore.put(updatedProduct);
+        putReq.onsuccess = () => {
+          syncStore.add({ type: 'product', refId: product.id, at: Date.now() });
+          resolve(updatedProduct);
+        };
+        putReq.onerror = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+  });
+
+  return updated;
+}
+
 // --- Penjualan ---
 // items: array [productId, qty]. Mengurangi stok, menyimpan penjualan,
-// dan mengantrekan penjualan untuk sinkronisasi cloud.
+// dan mengantrekan penjualan untuk sinkronisasi cloud dalam SATU transaksi atomik.
 export async function recordSale(items, paid) {
+  if (!items || items.length === 0) {
+    throw new Error('Keranjang belanja kosong.');
+  }
+
   const products = await listProducts();
   const byId = new Map(products.map((p) => [p.id, p]));
 
   let total = 0;
   for (const [id, qty] of items) {
-    const p = byId.get(id);
+    const p = byId.get(Number(id));
     if (!p) throw new Error(`Produk #${id} tidak ditemukan.`);
     if (p.stock < qty) throw new Error(`Stok ${p.name} tidak cukup (sisa ${p.stock}).`);
     total += p.price * qty;
   }
-  if (paid < total) throw new Error(`Uang yang dibayar kurang Rp ${total - paid}.`);
+  if (paid < total) throw new Error(`Uang yang dibayar kurang Rp ${(total - paid).toLocaleString('id-ID')}.`);
 
   const sale = {
     items: items.map(([id, qty]) => ({
-      productId: id,
-      name: byId.get(id).name,
-      price: byId.get(id).price,
+      productId: Number(id),
+      name: byId.get(Number(id)).name,
+      price: byId.get(Number(id)).price,
       qty,
     })),
     total,
     paid,
     change: paid - total,
-    date: new Date().toISOString().slice(0, 10),
+    date: localDateString(), // Gunakan tanggal lokal (WIB), bukan UTC toISOString
     createdAt: Date.now(),
   };
 
   const saleId = await tx(['products', 'sales', 'syncQueue'], 'readwrite', (t) => {
     const productsStore = t.objectStore('products');
-    for (const [id, qty] of items) {
-      const p = byId.get(id);
-      productsStore.put({ ...p, stock: p.stock - qty });
-    }
-    const saleReq = t.objectStore('sales').add(sale);
-    return new Promise((resolve) => {
-      saleReq.onsuccess = () => resolve(saleReq.result);
+    const salesStore = t.objectStore('sales');
+    const syncStore = t.objectStore('syncQueue');
+
+    return new Promise((resolve, reject) => {
+      // Validasi dan cek ulang stok aktual langsung di dalam transaksi tulis
+      let pendingReads = items.length;
+      const productsToUpdate = [];
+
+      for (const [id, qty] of items) {
+        const getReq = productsStore.get(Number(id));
+        getReq.onsuccess = () => {
+          const currentProd = getReq.result;
+          if (!currentProd) {
+            reject(new Error(`Produk #${id} tidak ditemukan di database.`));
+            return;
+          }
+          if (currentProd.stock < qty) {
+            reject(new Error(`Stok ${currentProd.name} tidak mencukupi (tersisa ${currentProd.stock}, diminta ${qty}).`));
+            return;
+          }
+          productsToUpdate.push({
+            product: currentProd,
+            newStock: currentProd.stock - qty,
+          });
+          pendingReads--;
+
+          if (pendingReads === 0) {
+            // Semua stok valid, simpan perubahan stok
+            for (const { product, newStock } of productsToUpdate) {
+              productsStore.put({ ...product, stock: newStock });
+            }
+            // Simpan catatan penjualan
+            const saleReq = salesStore.add(sale);
+            saleReq.onsuccess = () => {
+              const newSaleId = saleReq.result;
+              // Masuk syncQueue dalam transaksi atomik yang sama persis
+              syncStore.add({ type: 'sale', refId: newSaleId, at: Date.now() });
+              resolve(newSaleId);
+            };
+            saleReq.onerror = () => reject(saleReq.error);
+          }
+        };
+        getReq.onerror = () => reject(getReq.error);
+      }
     });
   });
-  await tx(['syncQueue'], 'readwrite', (t) => {
-    t.objectStore('syncQueue').add({ type: 'sale', refId: saleId, at: Date.now() });
-  });
+
   return { ...sale, id: saleId };
 }
 
@@ -318,7 +397,7 @@ export function getSale(id) {
 }
 
 export async function getTodaySummary() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateString(); // Gunakan tanggal lokal WIB
   const sales = await tx(['sales'], 'readonly', (t) => {
     return new Promise((resolve) => {
       const req = t.objectStore('sales').index('by-date').getAll(today);

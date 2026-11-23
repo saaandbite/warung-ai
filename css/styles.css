@@ -865,3 +865,586 @@ button:disabled {
   color: var(--danger);
   font-weight: 700;
 }
+
+/* =========================================================
+   SARAN PEMBULATAN KEMBALIAN
+   ========================================================= */
+.change-suggestion-box {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  color: #854d0e;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.35;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* =========================================================
+   TAB STOK BARU: FILTER BAR & KARTU STOK MODERN
+   ========================================================= */
+.header-action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.add-product-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.add-product-form h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.add-product-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .add-product-grid {
+    grid-template-columns: 2fr 1fr 1fr auto;
+    align-items: center;
+  }
+}
+
+.add-product-grid input {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.add-product-grid input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.stock-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.stock-filter-chip {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.stock-filter-chip:hover {
+  background: #f1f5f9;
+  color: var(--text-main);
+}
+
+.stock-filter-chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
+}
+
+.stock-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-item-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease;
+}
+
+@media (min-width: 640px) {
+  .stock-item-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+}
+
+.stock-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.stock-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stock-item-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stock-item-price {
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.stock-item-status-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stock-badge-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.stock-badge-pill.safe {
+  background: var(--primary-light);
+  color: var(--primary-text);
+}
+
+.stock-badge-pill.low {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.stock-badge-pill.empty {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+.stock-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-stock-qty {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid var(--border);
+  padding: 5px 9px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-stock-qty:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.btn-stock-custom {
+  background: var(--surface);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+.btn-stock-custom:hover {
+  background: var(--primary-light);
+}
+
+/* =========================================================
+   TAB RINGKASAN: METRIC CARDS & SYNC STATUS
+   ========================================================= */
+.summary-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+@media (min-width: 640px) {
+  .summary-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.summary-metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-metric-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.summary-metric-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+.summary-metric-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sync-status-row {
+  margin: 14px 0 20px 0;
+  display: flex;
+  align-items: center;
+}
+
+.badge-last-sync {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-actions-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   MODAL STRUK TRANSAKSI & CETAK THERMAL (58/80mm)
+   ========================================================= */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.receipt-card {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  font-family: system-ui, -apple-system, monospace, sans-serif;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.receipt-header {
+  text-align: center;
+}
+
+.receipt-header h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #0f172a;
+}
+
+.receipt-subtitle {
+  margin: 2px 0 8px 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.receipt-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #475569;
+  font-family: ui-monospace, monospace;
+}
+
+.receipt-divider {
+  border-bottom: 1.5px dashed #cbd5e1;
+  margin: 4px 0;
+}
+
+.receipt-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.receipt-item-line {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.receipt-item-title-row {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.receipt-item-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.receipt-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  color: #334155;
+}
+
+.receipt-change-row {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--primary);
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+.receipt-spelled {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #64748b;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.receipt-footer-msg {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+  padding: 6px 0;
+}
+
+.receipt-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.btn-receipt-action {
+  padding: 8px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.btn-receipt-action.btn-wa {
+  background: #15803d;
+  color: #fff;
+}
+
+.btn-receipt-action.btn-wa:hover {
+  background: #166534;
+}
+
+.btn-new-sale {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  width: 100%;
+}
+
+.btn-new-sale:hover {
+  background: var(--primary-hover);
+}
+
+/* =========================================================
+   TOAST NOTIFICATION COMPONENT
+   ========================================================= */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  width: 340px;
+}
+
+.toast-item {
+  pointer-events: auto;
+  background: #1e293b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideInRight 0.22s ease-out;
+  transition: all 0.2s ease;
+  line-height: 1.35;
+}
+
+.toast-item.toast-success {
+  background: #14532d;
+  border-left: 4px solid #4ade80;
+}
+
+.toast-item.toast-error {
+  background: #7f1d1d;
+  border-left: 4px solid #f87171;
+}
+
+.toast-item.toast-warning {
+  background: #78350f;
+  border-left: 4px solid #fbbf24;
+}
+
+.toast-item.toast-info {
+  background: #0f172a;
+  border-left: 4px solid #38bdf8;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.toast-text {
+  flex: 1;
+}
+
+/* =========================================================
+   MEDIA PRINT KHUSUS STRUK THERMAL (58mm & 80mm)
+   ========================================================= */
+@media print {
+  /* Sembunyikan seluruh UI web */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Tampilkan hanya modal struk */
+  #receipt-modal,
+  #receipt-modal * {
+    visibility: visible;
+  }
+
+  #receipt-modal {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .receipt-card {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 78mm !important; /* Standar thermal 80mm / 58mm */
+    padding: 2mm !important;
+    margin: 0 auto !important;
+    font-size: 11pt !important;
+    color: #000 !important;
+  }
+
+  .receipt-header h3 {
+    font-size: 14pt !important;
+    color: #000 !important;
+  }
+
+  .receipt-divider {
+    border-bottom: 1px dashed #000 !important;
+  }
+
+  .receipt-change-row {
+    color: #000 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
