@@ -2,7 +2,7 @@
 
 Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:00 WIB**. Urutan mengikuti dampak per jam kerja: gerbang utama dulu, poles tampilan belakangan. Setiap tugas mencantumkan penanggung jawab (PIC) — PIC yang tertulis adalah yang mengerjakan, bukan sekadar yang mengawasi.
 
-**Tim:** Haris (product & UX) · Syuhada (frontend + edit video) · Agung (Firebase AI Logic) · Ahmad (model data, sinkronisasi, App Check, take video)
+**Tim:** Haris (product & UX, perbaikan sync) · Syuhada (frontend + edit video) · Agung (Firebase AI Logic) · Ahmad (model data, App Check, take video)
 
 ## 0. Keputusan yang harus diputus malam ini (23 Nov) — PIC: Haris
 
@@ -34,13 +34,13 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **3.4. Restock cepat:** tombol `+ Stok` per produk + ambang menipis per produk + fungsi `updateProductStock(id, addedQty)` di `js/db.js` yang mencatat ke `syncQueue`.
 - [ ] **3.5. Saran pembulatan kembalian:** contoh: total Rp 23.500, dibayar Rp 50.000 → saran "minta Rp 3.500 agar kembalian genap Rp 30.000".
 
-## 4. Sinkronisasi (perbaikan minimal) — PIC: Ahmad
+## 4. Sinkronisasi (perbaikan minimal) — PIC: Haris
 
 - [x] **4.1. Pull memperbarui produk yang sudah ada (SELESAI 23 Nov, commit 75fbd01):** stok/harga/nama diperbarui bila data cloud lebih baru (`syncedAt`) dan isinya berbeda; tidak menimpa perubahan lokal yang masih antre.
-- [ ] **4.2. Transaksi atomik:** penjualan + `syncQueue.add()` dalam transaksi yang sama. (~30 menit — didahulukan)
-- [ ] **4.3. Karantina per-item gagal + retry count:** satu item gagal tidak boleh memblokir antrean selamanya.
-- [ ] **4.4. Doc ID komposit `${deviceId}-${localId}` (27 Nov):** pengganti migrasi UUID penuh (ditunda pasca-lomba).
-- [ ] **4.5. Try/catch per dokumen saat pull:** satu dokumen korup tidak mematikan seluruh pull.
+- [ ] **4.2. Transaksi atomik — Haris:** penjualan + `syncQueue.add()` dalam transaksi yang sama. (~30 menit — didahulukan)
+- [ ] **4.3. Karantina per-item gagal + retry count — Haris:** satu item gagal tidak boleh memblokir antrean selamanya.
+- [ ] **4.4. Doc ID komposit `${deviceId}-${localId}` (27 Nov) — Haris:** pengganti migrasi UUID penuh (ditunda pasca-lomba).
+- [ ] **4.5. Try/catch per dokumen saat pull — Haris:** satu dokumen korup tidak mematikan seluruh pull.
 
 ## 5. UX & kelengkapan produk — PIC: Syuhada (kecuali disebut lain)
 
