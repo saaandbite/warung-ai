@@ -1,115 +1,116 @@
-# Warung AI — Kasir warung offline-first dengan AI on-device
+# Warung AI — the cashier that tells you what to restock tomorrow
 
-> Offline-first cashier, stock & finance for small warungs, with an on-device AI
-> assistant. Built for **#BuildHybridAI 2026** (Google / Firebase, Devpost).
+> An offline-first cashier for Indonesian warungs, with an AI that advises what to buy next — built with Firebase AI Logic for **#BuildHybridAI 2026** (Google / Firebase, Devpost).
 
-Tim **TDR-3000**: Haris Sandi Purna Yudha, Ahmad Dedad, Faiz Rifki Syuhada (Syuu),
-Agung Dwi Pangestu.
+Live demo: https://warung-ai-rho.vercel.app
+Team **TDR-3000**: Haris Sandi Purna Yudha, Ahmad Dedad, Faiz Rifki Syuhada, Agung Dwi Pangestu.
 
-## Ide dalam satu kalimat
+## The story
 
-Kasir + stok + keuangan warung kecil yang tetap jalan tanpa internet, dengan
-asisten AI yang bisa ditanya offline — lalu sinkron ke cloud saat online.
+In every Indonesian city there is a warung that never closes. The Madurese ones are the most famous of all: small grocery shops run by families from Madura, open 24 hours, selling Indomie, coffee, soap, and rice to anyone passing by at 2 in the morning. Ask the owner what technology the shop runs on, and the answer is usually one thing — QRIS, so customers can pay by phone.
 
-## Masalah
+Everything else lives in the owner's head. Which items sell out first. How much cash is in the drawer. What to buy at the morning market, and what can wait until tomorrow. A wrong restock is not a small mistake: for a shop earning about Rp 1 million of profit a month, one bad buying trip can cost close to half a month's earnings.
 
-Pemilik warung kecil sering jualan di tempat sinyal tidak stabil. Aplikasi kasir
-biasa mati saat offline; catatan manual tercecer. Warung AI mencatat penjualan
-dan stok secara lokal dulu, dan AI menjawab pertanyaan dari data toko sendiri
-tanpa butuh internet.
+Warung AI is built for that owner. It works without a signal, because warungs do not always have one. It speaks Indonesian, right down to spelling out change in words ("lima puluh ribu rupiah"). And it answers the one question the owner asks every night: with the money I have, what should I buy tomorrow?
 
-## Cara kerja hybrid-nya
+This is not a story about a shop that already uses the app — no warung runs on Warung AI yet, and the sample data in the demo is sample data. It is a story about who the app is for, and why it is built the way it is.
 
-- **On-device (Gemini Nano 4 via Firebase AI Logic):** tanya-jawab dari data toko
-  ("barang apa paling laris minggu ini?", "stok apa hampir habis?") dan ringkasan
-  harian otomatis — jalan offline, di Chrome desktop.
-- **Cloud (Gemini via Firebase AI Logic, saat online):** fallback kalau pertanyaan
-  butuh model lebih besar, plus sinkronisasi data ke Firestore.
-- **Firebase pendukung:** Firestore (sinkronisasi), App Check (wajib untuk
-  submission), Authentication.
+## What it does
 
-Platform: Web (PWA — Service Worker + IndexedDB — supaya bisa offline di HP),
-host di Vercel.
+1. **Offline cashier** — record a sale, count the total and the change, all stored on the device first. It keeps working in airplane mode.
+2. **Stock that looks after itself** — every sale reduces stock automatically, with a low-stock warning per product.
+3. **Sync when you are back online** — sales and products upload to Firestore, and pulling brings the newest stock and prices from the cloud back to the device.
+4. **Ask AI** — ask about your own shop: what sold best today, what is running low, how today went. Answers come from your own store data. The Firebase AI Logic integration is in progress: on-device Gemini Nano where supported, cloud Gemini on the phones warung owners actually use. The restock advisor — what to buy next under a limited budget — is being built now; see Status below.
 
-## MVP — 4 fitur inti
+What it deliberately does not do: full accounting, multiple branches, QRIS payments, supplier notifications, tax reports. Those are not the warung owner's problem at 2 in the morning.
 
-1. **Kasir offline** — catat penjualan, hitung total dan kembalian, tersimpan lokal.
-2. **Stok** — stok berkurang otomatis tiap terjual, peringatan stok menipis.
-3. **AI offline (Nano 4)** — tanya-jawab dari data toko + ringkasan harian otomatis.
-4. **Sinkronisasi cloud** — data naik ke Firestore saat ada internet, plus App Check.
+## How it works
 
-Bukan MVP (tahan sampai MVP jalan): akuntansi penuh, multi-cabang, pembayaran
-QRIS, notifikasi pemasok, laporan pajak.
+- **Offline-first PWA, no build step.** Service Worker (network-first) + IndexedDB (`products`, `sales`, `syncQueue`). Open it, sell, close it — the data is on the device.
+- **Sync (Firestore).** A queue carries local changes up; pull brings cloud data down. Pull adds new products and updates existing ones when the cloud copy is newer (compared by `syncedAt`), and never overwrites a local change that has not been uploaded yet.
+- **Hybrid AI (Firebase AI Logic).** One call through Firebase AI Logic: on-device Gemini Nano on desktop Chrome where supported, cloud Gemini (Flash-Lite) on phones. Nano does not exist on Chrome for Android or iOS, so the app is honest about that and shows which model actually answered. Numbers are always computed in code; the model only reasons about priorities — it never does the arithmetic.
+- **App Check.** Firebase AI Logic requires App Check. This project uses reCAPTCHA v3 (free, no billing) for the live URL and debug tokens for local development. A debug token is never committed.
+- **Hosting.** Static site, auto-deployed to Vercel on every push to `main`.
 
-## Struktur proyek
+## Project structure
 
 ```
-index.html            # App shell PWA (Kasir / Stok / AI / Ringkasan)
-manifest.json         # Manifest PWA
-sw.js                 # Service Worker (cache-first app shell)
-css/styles.css        # Styling dasar, mobile-first
-js/app.js             # Entry point: navigasi tab, status online/offline
-js/db.js              # IndexedDB lokal: produk, penjualan, antrean sinkronisasi
-js/ai.js              # Firebase AI Logic: Nano on-device + fallback cloud (TODO)
-js/sync.js            # Sinkronisasi antrean lokal ke Firestore saat online (TODO)
-js/firebase-config.example.js  # Contoh konfigurasi Firebase (isi dengan punyamu)
-docs/brief.md         # Brief proyek lengkap (ide, timeline, checklist submit)
+index.html            # App shell PWA (Kasir / Stok / Tanya AI / Ringkasan)
+manifest.json         # PWA manifest
+sw.js                 # Service Worker (network-first)
+css/styles.css        # Styling, mobile-first
+js/app.js             # Entry point: tabs, online/offline status, pull & sync buttons
+js/db.js              # IndexedDB: products, sales, sync queue
+js/ai.js              # AI answers from local store data; Firebase AI Logic integration in progress
+js/sync.js            # Queue upload + pull from Firestore
+js/firebase-config.js # Public web config of the Firebase project (not a server secret)
+docs/brief.md         # Full project brief (idea, timeline, submission checklist)
+docs/todo.md          # What is being built next, in order, with owners (in Indonesian)
 ```
 
-## Menjalankan secara lokal
+## Run it locally
 
-Tidak ada build step. Jalankan dari folder proyek dengan server statis apa saja:
+No build step. Serve the folder with any static server:
 
 ```sh
 npx serve .
-# lalu buka http://localhost:3000
+# then open http://localhost:3000
 ```
 
-Service Worker hanya aktif lewat `http://localhost` atau HTTPS.
+The Service Worker only activates over `http://localhost` or HTTPS.
 
-## Konfigurasi Firebase
+## Firebase setup
 
-1. Buat project di [Firebase Console](https://console.firebase.google.com).
-2. Aktifkan **Firestore**, **Authentication**, **App Check**, dan **Firebase AI Logic**.
-3. `js/firebase-config.js` berisi konfigurasi web app project Firebase-mu dan
-   sudah di-commit — ini public client config (bukan rahasia server), jadi
-   deployment Vercel langsung bisa sync ke Firestore. Jangan pernah commit
-   service account JSON atau kunci privat ke repo ini.
-4. Untuk pengembangan, App Check boleh memakai debug token (diterima untuk
-   submission hackathon).
+1. Create a project in [Firebase Console](https://console.firebase.google.com).
+2. Enable **Firestore**, **Firebase AI Logic**, and **App Check**.
+3. `js/firebase-config.js` holds the project's public web config and is committed on purpose — it is client config, not a server secret. Never commit a service account JSON or a private key to this repo.
+4. For App Check on the live URL, register a reCAPTCHA v3 key (free) at google.com/recaptcha/admin and set it in the Firebase Console under App Check. For local development, use a debug token — never commit the token value.
 
-## Tes paling awal (critical path)
+## Status — what is done, what is next
 
-Sebelum membangun jauh, uji apakah **Gemini Nano 4 jalan di Chrome yang dipakai
-tim** (Chrome desktop v139+, butuh ~22 GB ruang kosong + GPU >4 GB VRAM atau
-RAM 16 GB). Nano tidak jalan di Chrome HP — di HP aplikasi fallback ke cloud
-(butuh internet). Kalau Nano belum tersedia, fallback cloud harus siap sejak awal.
+Done:
 
-## Pembagian tugas
+- Offline cashier with Indonesian thousand separators and change spelled out in words
+- Stock tracking, live search, quick-cash buttons
+- Sync upload + pull (pull updates existing products from the cloud)
+- Live on Vercel with CI/CD (every push to `main` deploys)
 
-- **Haris** — product & UX, desain antarmuka kasir, naskah + rekaman video demo.
-- **Syuu** — frontend PWA + kasir/stok.
-- **Agung** — integrasi Firebase AI Logic (Nano on-device + fallback cloud).
-- **Ahmad** — model data Firestore + sinkronisasi cloud + prompt AI.
+In progress (before 1 Dec 2026):
+
+- Firebase AI Logic: real model calls (cloud first), restock advisor, honest model badge
+- App Check (reCAPTCHA v3) + Firestore rules + enforcement
+- Receipts, quick restock, security and data fixes
+
+Next: 3-minute demo video, Devpost submission.
 
 ## Timeline
 
-- **16–18 Nov:** repo + scaffold PWA + project Firebase; tes Nano 4.
-- **19–24 Nov:** kasir + stok (malam hari, sela-sela UiPath).
-- **25 Nov:** libur (deadline UiPath).
-- **26–28 Nov:** AI offline + sinkronisasi cloud + poles.
-- **29 Nov:** rekam video demo (maks 3 menit) + isi form submit sebagai draft.
-- **30 Nov:** buffer. Submit final sebelum **1 Des 2026 05:00 WIB**.
+- **23 Nov:** AI Logic spike + App Check (tonight).
+- **24 Nov:** cloud Q&A end-to-end, seed data for 14 days.
+- **25 Nov:** rest day (UiPath deadline + Teachers' Day).
+- **26 Nov:** full restock advisor; go/no-go on the AI (cloud-only criteria).
+- **27 Nov:** photo receipt (only if the advisor passes go/no-go); minimal sync fixes; two-device test.
+- **28 Nov:** freeze the build at 12:00 WIB; video rehearsal.
+- **29 Nov:** record the 3-minute demo video in the morning; fill in the Devpost draft.
+- **30 Nov:** buffer; submit well before the deadline.
+- **1 Dec 2026, 05:00 WIB:** submission deadline.
 
-## Checklist submit
+## Team
 
-- [ ] Aplikasi demo yang jalan (Web/Chrome), menunjukkan Firebase AI Logic saat runtime.
-- [ ] Repo publik berisi semua source, aset, dan instruksi menjalankan.
-- [ ] Video demo maks 3 menit, publik di YouTube, berbahasa Inggris atau subtitle Inggris.
-- [ ] Deskripsi teks proyek di form Devpost.
-- [ ] App Check aktif (debug token diterima).
-- [ ] Repo + draft Devpost atas nama tim (bukan "Untitled" lagi).
+- **Haris** — product & UX, store data, demo script + recording, Devpost.
+- **Syuhada** — frontend (cashier & stock), receipts, video editing.
+- **Agung** — Firebase AI Logic integration.
+- **Ahmad** — Firestore data model, sync, App Check.
 
-## Lisensi
+## Submission checklist
 
-MIT — lihat [LICENSE](LICENSE).
+- [ ] Working demo app (web/Chrome) showing Firebase AI Logic at runtime.
+- [ ] Public repo with all source, assets, and run instructions.
+- [ ] Demo video, max 3 minutes, public on YouTube, in English or with English subtitles.
+- [ ] Project description in the Devpost form.
+- [ ] App Check active (reCAPTCHA v3 or debug token).
+- [ ] Repo + Devpost draft under the team name.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

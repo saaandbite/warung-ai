@@ -1,102 +1,83 @@
-# Roadmap & Detail Tugas Warung AI (#BuildHybridAI 2026)
+# Roadmap & Tugas Warung AI (#BuildHybridAI 2026)
 
-Dokumen ini memecah seluruh pekerjaan menjadi tugas-tugas kecil yang spesifik, terukur, dan siap dikerjakan oleh masing-masing anggota tim (**Haris, Syuu, Agung, Ahmad**).
+Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:00 WIB**. Urutan mengikuti dampak per jam kerja: gerbang utama dulu, poles tampilan belakangan. Setiap tugas mencantumkan penanggung jawab (PIC) — PIC yang tertulis adalah yang mengerjakan, bukan sekadar yang mengawasi.
 
----
+**Tim:** Haris (product & UX) · Syuhada (frontend + edit video) · Agung (Firebase AI Logic) · Ahmad (model data, sinkronisasi, App Check)
 
-## 1. Modul Struk Transaksi (Kasir & Struk) — [Prioritas Segera]
-*Target File: `index.html`, `css/styles.css`, `js/app.js`*
-*PIC yang disarankan: Syuu / Haris*
+## 0. Keputusan yang harus diputus malam ini (23 Nov) — PIC: Haris
 
-- [ ] **1.1. Modal Popup Struk Transaksi:**
-  - Buat elemen `<dialog>` atau popup overlay struk yang otomatis muncul setelah tombol "Simpan Penjualan" berhasil ditekan.
-  - Tampilkan header struk: Nama Toko ("Warung AI"), Nomor Nota (ID transaksi lokal), Tanggal dan Jam transaksi.
-  - Tampilkan daftar rincian barang: Nama item, Qty, Harga satuan, Subtotal per item.
-  - Tampilkan ringkasan pembayaran: Total Tagihan, Nominal Diterima, Nominal Kembalian.
-- [ ] **1.2. Cetak Struk Fisik (Thermal Printer Ready):**
-  - Pasang tombol "Cetak Struk" yang memanggil `window.print()`.
-  - Buat CSS `@media print` khusus agar saat dicetak, seluruh antarmuka web (header, tab bar, tombol) disembunyikan dan hanya struk berukuran kertas kasir (58mm/80mm) yang tercetak rapi.
-- [ ] **1.3. Fitur Bagikan Struk WhatsApp:**
-  - Tambahkan tombol "Salin Teks Nota (WA)" yang menyalin ringkasan nota dalam format teks pesan WhatsApp (agar kasir bisa mengirim nota digital ke nomor pelanggan).
-- [ ] **1.4. Tombol Transaksi Baru:**
-  - Tombol "Tutup / Transaksi Baru" untuk menutup modal struk, mengosongkan keranjang, dan mengembalikan fokus kursor ke input kasir.
+- [ ] Sahkan wedge: Penasihat Kulakan ("kasir yang memberi tahu pemilik warung apa yang harus dibeli besok — dengan uang yang ia punya") atau pilih foto nota.
+- [ ] Foto nota dibangun atau dicoret.
+- [ ] Pilot: kunjungan warung atau seed dari chat warung yang dikenal (seed dinyatakan jujur sebagai data contoh).
 
----
+## 1. AI Logic + App Check (gerbang utama — dikerjakan dulu)
 
-## 2. Redesign Tab Stok (Inventaris Barang)
-*Target File: `index.html`, `css/styles.css`, `js/app.js`, `js/db.js`*
-*PIC yang disarankan: Syuu*
+- [ ] **1.1. Spike AI Logic (23 Nov malam) — Agung:** skeleton `ai.js` baru + satu panggilan cloud pertama + mulai unduh Nano di laptop perekam.
+- [ ] **1.2. Q&A cloud end-to-end (24 Nov) — Agung:** tanya-jawab grounded dari data toko + badge `inferenceSource` yang jujur (Nano/Cloud/Template).
+- [ ] **1.3. Penasihat Kulakan (26 Nov) — Agung + Ahmad:** satu panggilan model, JSON terstruktur (`responseSchema`), validasi pasca-model di JS (hitung ulang angka, potong dari bawah bila melebihi budget, buang item di luar katalog), kartu UI + angka rupiah yang dihitung kode.
+- [ ] **1.4. Go/no-go AI (26 Nov malam) — Semua:** kriteria cloud-only — satu pertanyaan kulakan dijawab model dari data toko yang baru diubah, badge benar, di HP. Nano bukan kriteria go.
+- [ ] **1.5. App Check + `firestore.rules` (23–24 Nov) — Ahmad (+ Agung):** App Check SDK + reCAPTCHA v3 (gratis, tanpa billing) + debug token hanya untuk localhost (tidak pernah di-commit) + tulis `firestore.rules` + enforcement di konsol + commit keduanya.
+- [ ] **1.6. Hapus klaim palsu di UI (23 Nov) — Haris:** hapus "Offline: Gemini Nano 4..." + placeholder "minggu ini" → "hari ini" + badge status model yang jujur.
+- [ ] **1.7. Verifikasi kuota cloud (23–24 Nov) — Agung:** cek kuota aktual Flash-Lite di AI Studio sebelum memutuskan final.
 
-- [ ] **2.1. Tabel Inventaris Modern (Gantikan format `<ul>` polos):**
-  - Ubah daftar stok menjadi tabel/kartu baris yang rapi dengan kolom: Nama Barang, Harga Jual, Sisa Stok, Status Badge (Aman / Menipis / Habis), dan Aksi.
-- [ ] **2.2. Tombol Restock Cepat (Tambah Stok Tanpa Buat Barang Baru):**
-  - Tambahkan tombol `+ Stok` di setiap baris barang yang memunculkan input cepat untuk menambah stok (misal: tambah 10 botol).
-  - Tambahkan fungsi `updateProductStock(id, addedQty)` di `js/db.js` yang juga mencatat perubahan ke `syncQueue`.
-- [ ] **2.3. Form Tambah Produk Baru yang Kompak:**
-  - Desain ulang `#add-product-form` menjadi card modern berbayang halus dengan field terstruktur: Nama Barang, Harga Jual (Rp), dan Stok Awal.
-- [ ] **2.4. Filter Kategori / Status Stok:**
-  - Tambahkan tombol filter tab kecil di atas daftar stok: "Semua", "Stok Menipis (< 5)", dan "Stok Habis (0)".
+## 2. Keamanan & kebenaran data — PIC: Syuhada
 
----
+- [ ] **2.1. Stored-XSS:** render dengan `textContent` / escape HTML di semua jalur (produk, keranjang, hasil pencarian). (~1 jam)
+- [ ] **2.2. Bug tanggal UTC:** pakai tanggal lokal WIB saat mencatat `date` dan `getTodaySummary()`. (<1 jam)
+- [ ] **2.3. Checkout aman:** disable tombol selama `recordSale()` async; cek ulang stok di dalam transaksi tulis; validasi input + try/catch form. (~0,5 hari)
 
-## 3. Redesign Tab Ringkasan (Laporan & Status Sinkronisasi Cloud)
-*Target File: `index.html`, `css/styles.css`, `js/app.js`*
-*PIC yang disarankan: Ahmad / Syuu*
+## 3. Kasir: struk + restock — PIC: Syuhada
 
-- [ ] **3.1. Kartu Metrik Keuangan (Metric Stat Cards):**
-  - Buat 3 kartu ringkasan di bagian atas:
-    1. *Total Omzet Hari Ini* (Rp dengan font besar tebal).
-    2. *Total Transaksi* (Jumlah nota penjualan hari ini).
-    3. *Status Antrean Cloud* (Jumlah item lokal menunggu upload).
-- [ ] **3.2. Panel Status Sinkronisasi Cloud Interaktif:**
-  - Tampilkan indikator visual: Badge "Data Tersinkronisasi" (hijau) atau "Ada X Data Belum Diunggah" (kuning).
-  - Tampilkan teks: "Terakhir sinkron: [Waktu/Jam]".
-  - Tombol ganda dengan icon SVG: "Unggah ke Cloud" (`syncNow`) dan "Tarik dari Cloud" (`pullFromCloud`), lengkap dengan animasi loading saat proses berlangsung.
-- [ ] **3.3. Tabel Riwayat Transaksi Hari Ini:**
-  - Tampilkan daftar transaksi penjualan yang dilakukan hari ini.
-  - Setiap baris transaksi memuat: Jam transaksi, ringkasan barang, total nominal, dan tombol "Lihat Struk" untuk mencetak ulang nota jika diperlukan.
+- [ ] **3.1. Modal struk:** nomor nota, rincian barang, total, kembalian; tombol "Transaksi Baru" yang mengosongkan keranjang.
+- [ ] **3.2. Cetak struk:** `window.print()` + `@media print` (thermal 58/80mm).
+- [ ] **3.3. Bagikan struk via WhatsApp:** tombol salin teks nota.
+- [ ] **3.4. Restock cepat:** tombol `+ Stok` per produk + ambang menipis per produk + fungsi `updateProductStock(id, addedQty)` di `js/db.js` yang mencatat ke `syncQueue`.
+- [ ] **3.5. Saran pembulatan kembalian:** contoh: total Rp 23.500, dibayar Rp 50.000 → saran "minta Rp 3.500 agar kembalian genap Rp 30.000".
 
----
+## 4. Sinkronisasi (perbaikan minimal) — PIC: Ahmad
 
-## 4. Redesign Tab Tanya AI (Asisten Warung Hybrid)
-*Target File: `index.html`, `css/styles.css`, `js/ai.js`, `js/app.js`*
-*PIC yang disarankan: Agung / Haris*
+- [x] **4.1. Pull memperbarui produk yang sudah ada (SELESAI 23 Nov, commit 75fbd01):** stok/harga/nama diperbarui bila data cloud lebih baru (`syncedAt`) dan isinya berbeda; tidak menimpa perubahan lokal yang masih antre.
+- [ ] **4.2. Transaksi atomik:** penjualan + `syncQueue.add()` dalam transaksi yang sama. (~30 menit — didahulukan)
+- [ ] **4.3. Karantina per-item gagal + retry count:** satu item gagal tidak boleh memblokir antrean selamanya.
+- [ ] **4.4. Doc ID komposit `${deviceId}-${localId}` (27 Nov):** pengganti migrasi UUID penuh (ditunda pasca-lomba).
+- [ ] **4.5. Try/catch per dokumen saat pull:** satu dokumen korup tidak mematikan seluruh pull.
 
-- [ ] **4.1. Antarmuka Chat Percakapan (Conversation Bubble UI):**
-  - Ubah area hasil AI menjadi tampilan percakapan (bubble chat pesan kasir di kanan, balasan AI di kiri).
-- [ ] **4.2. Tombol Pintas Pertanyaan (Quick Prompt Chips):**
-  - Sediakan tombol prompt siap klik di atas kolom input:
-    - *"Barang apa paling laris hari ini?"*
-    - *"Stok apa yang harus dibeli lagi?"*
-    - *"Berapa perkiraan keuntungan hari ini?"*
-    - *"Buatkan ringkasan tutup warung hari ini."*
-- [ ] **4.3. Badge Indikator Mesin AI (On-Device vs Cloud):**
-  - Tampilkan badge di pojok atas tab AI:
-    - `🟢 Gemini Nano (On-Device / Offline)` jika browser mendukung.
-    - `☁️ Gemini Cloud via Firebase` jika berjalan melalui cloud.
-- [ ] **4.4. Efek Typing / Loading State:**
-  - Tampilkan animasi titik berkedip (*typing indicator*) saat AI sedang membaca data dan memproses jawaban.
+## 5. UX & kelengkapan produk — PIC: Syuhada (kecuali disebut lain)
 
----
+- [ ] **5.1. Ganti `alert()` dengan toast** untuk alur demo yang kritis (sisanya boleh tetap `alert` bila waktu habis).
+- [ ] **5.2. Badge sinkronisasi:** "Terakhir sinkron HH:MM" di tab Ringkasan.
+- [ ] **5.3. Tab Stok:** ubah `<ul>` polos menjadi tabel/kartu (nama, harga, stok, badge status, aksi) + filter "Semua / Menipis / Habis".
+- [ ] **5.4. Tab Ringkasan:** 3 kartu metrik (omzet hari ini, jumlah transaksi, antrean cloud).
+- [ ] **5.5. Seed 14 hari (24 Nov) — Haris (+ Ahmad):** skrip seed + validasi realisme seed; seed dinyatakan sebagai data contoh.
+- [ ] **5.6. Ikon PWA 192/512 (termasuk maskable) — Haris.**
+- [ ] **5.7. Perbarui README + todo ini — Haris:** supaya statusnya jujur (sync/AI yang sebenarnya, batasan ID komposit, seed sebagai data contoh).
+- [ ] **5.8. Foto nota → draf restock (27 Nov, BERSYARAT) — Agung + Syuhada:** hanya bila Penasihat Kulakan lolos go/no-go 26 Nov; dipotong pertama bila Agung macet; demo hanya nota cetak.
 
-## 5. Fitur Kasir Tambahan (Uang Receh & Pembulatan)
-*Target File: `js/app.js`, `css/styles.css`*
-*PIC yang disarankan: Haris / Syuu*
+## 6. Video demo 3 menit + Devpost — PIC: Haris (rekam + naskah + Devpost) · Syuhada (edit video)
 
-- [ ] **5.1. Saran Pembulatan Uang Kembalian:**
-  - Jika total belanja bernilai receh (contoh: Rp 23.500) dan pembeli memberikan uang Rp 50.000, kasir bisa melihat saran: *"Minta Rp 3.500 agar kembalian genap Rp 30.000"*.
+- [ ] **6.1. Naskah video (28 Nov, gladi bersih):** 0:00–0:10 hook mode pesawat + URL → 0:10–0:50 hybrid yang jujur (badge Cloud di HP, badge Nano di laptop hanya bila benar-benar terjadi) → 0:50–1:30 kasir + struk → 1:30–2:10 Penasihat Kulakan (satu angka rupiah yang dihitung kode) → 2:10–2:40 foto nota (hanya bila dibangun) → 2:40–2:50 sync + still frame App Check *Enforced* → 2:50–3:00 penutup.
+- [ ] **6.2. Rekam video (29 Nov pagi, dari build beku) — Haris:** rekam pagi hari (kuota penuh); penjualan Sabun 11 pcs harus sudah tersinkron sebelum rekaman.
+- [ ] **6.3. Edit video presentasi 3 menit — Syuhada:** potong sesuai naskah, subtitle Inggris, pastikan badge dan angka di layar terbaca.
+- [ ] **6.4. Aturan kejujuran video (tidak bisa dinegosiasikan):** tidak ada badge Nano palsu; seed dinyatakan sebagai data contoh; anomali masuk video hanya bila seed ≥ 14 hari; angka rupiah dihitung kode dan ditampilkan sebagai perkiraan ("≈").
+- [ ] **6.5. Isi draft Devpost (29–30 Nov) — Haris:** deskripsi teks, repo, video, checklist; verifikasi status draft atas nama tim.
+- [ ] **6.6. Submit final (30 Nov) — Haris:** jauh sebelum 1 Des 05:00 WIB.
 
----
+## 7. Daftar potong — jangan dibangun sebelum 1 Des
 
-## 6. Syarat Wajib Lomba & Video Submission (#BuildHybridAI)
-*Target: Firebase Console, Hosting, Devpost*
-*PIC yang disarankan: Haris (Video & Form), Ahmad (App Check)*
+Foto rak → hitung stok · anomali mandiri · penasihat harga/margin (mandiri) · buku bon + draf WA · ringkasan naratif model · chat AI bebas sebagai jalur utama · Grounding Search/Maps · Auth · migrasi UUID penuh · pagination/delta sync · riwayat transaksi penuh · toast menyeluruh (kecuali alur demo kritis) · pilot kunjungan warung · PPOB/bon sebagai fitur · multi-cabang / QRIS · akuntansi penuh.
 
-- [ ] **6.1. Inisialisasi Firebase App Check:**
-  - Pasang App Check SDK dengan Debug Provider Token di `js/sync.js` atau file inisialisasi agar lolos validasi wajib juri Google.
-- [ ] **6.2. Deploy Publik:**
-  - Hubungkan repo GitHub ke Vercel atau Firebase Hosting (`warung-ai.web.app`).
-- [ ] **6.3. Video Demo (Maksimal 3 Menit):**
-  - Menit 1: Masalah warung offline & transaksi kasir + struk tanpa internet.
-  - Menit 2: Tanya jawab data toko offline dengan AI on-device.
-  - Menit 3: Hubungkan internet, data otomatis sinkron ke Firestore & App Check hijau.
+**Urutan pemotongan bila meleset:** riwayat transaksi → toast menyeluruh → doc ID komposit → anomali dari video → foto nota. **Yang tidak boleh dipotong:** AI Logic nyata, App Check, video, Penasihat Kulakan.
+
+## Timeline harian 23 Nov – 1 Des 05:00 WIB
+
+| Hari | Fokus | PIC |
+|---|---|---|
+| Sen 23 Nov (malam) | Kickoff keputusan (§0); spike AI Logic; App Check draft; hapus klaim palsu; XSS + tanggal WIB | Semua |
+| Sel 24 Nov (malam) | Q&A cloud + badge; antrean atomik + seed 14 hari; checkout guard; ikon PWA; verifikasi kuota | Agung/Ahmad/Syuhada/Haris |
+| Rab 25 Nov | LIBUR (deadline UiPath + Hari Guru). Review 30 menit: Nano sudah terunduh? Q&A jalan? Seed realistis? | Haris |
+| Kam 26 Nov | Penasihat Kulakan penuh; karantina per-item; struk + restock; uji end-to-end; malam: GO/NO-GO AI | Semua |
+| Jum 27 Nov | Foto nota (hanya bila go); pull-perbarui + ID komposit; uji dua perangkat #1 | Agung/Ahmad/Syuhada/Haris |
+| Sab 28 Nov | Penjualan nyata + uji end-to-end penuh; BEKU BUILD 12:00 WIB; sore: bug-bash + gladi bersih video | Semua |
+| Min 29 Nov | Rekam video 3 menit pagi; isi draft Devpost | Haris (+ Syuhada edit) |
+| Sen 30 Nov | Buffer: tonton ulang video; perbaiki teks Devpost; submit final | Haris |
+| Sel 1 Des 05:00 WIB | Deadline | — |
