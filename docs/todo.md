@@ -2,7 +2,7 @@
 
 Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:00 WIB**. Urutan mengikuti dampak per jam kerja: gerbang utama dulu, poles tampilan belakangan. Setiap tugas mencantumkan penanggung jawab (PIC) — PIC yang tertulis adalah yang mengerjakan, bukan sekadar yang mengawasi.
 
-**Tim:** Haris (product & UX) · Syuhada (frontend + edit video) · Agung (Firebase AI Logic) · Ahmad (model data, sinkronisasi, App Check)
+**Tim:** Haris (product & UX) · Syuhada (frontend + edit video) · Agung (Firebase AI Logic) · Ahmad (model data, sinkronisasi, App Check, take video)
 
 ## 0. Keputusan yang harus diputus malam ini (23 Nov) — PIC: Haris
 
@@ -53,10 +53,10 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **5.7. Perbarui README + todo ini — Haris:** supaya statusnya jujur (sync/AI yang sebenarnya, batasan ID komposit, seed sebagai data contoh).
 - [ ] **5.8. Foto nota → draf restock (27 Nov, BERSYARAT) — Agung + Syuhada:** hanya bila Penasihat Kulakan lolos go/no-go 26 Nov; dipotong pertama bila Agung macet; demo hanya nota cetak.
 
-## 6. Video demo 3 menit + Devpost — PIC: Haris (rekam + naskah + Devpost) · Syuhada (edit video)
+## 6. Video demo 3 menit + Devpost — PIC: Haris (naskah + Devpost) · Ahmad (take video) · Syuhada (edit video)
 
 - [ ] **6.1. Naskah video (28 Nov, gladi bersih):** 0:00–0:10 hook mode pesawat + URL → 0:10–0:50 hybrid yang jujur (badge Cloud di HP, badge Nano di laptop hanya bila benar-benar terjadi) → 0:50–1:30 kasir + struk → 1:30–2:10 Penasihat Kulakan (satu angka rupiah yang dihitung kode) → 2:10–2:40 foto nota (hanya bila dibangun) → 2:40–2:50 sync + still frame App Check *Enforced* → 2:50–3:00 penutup.
-- [ ] **6.2. Rekam video (29 Nov pagi, dari build beku) — Haris:** rekam pagi hari (kuota penuh); penjualan Sabun 11 pcs harus sudah tersinkron sebelum rekaman.
+- [ ] **6.2. Take video (29 Nov pagi, dari build beku) — Ahmad:** rekam pagi hari (kuota penuh); penjualan Sabun 11 pcs harus sudah tersinkron sebelum rekaman. Naskah + arahan tetap Haris (6.1).
 - [ ] **6.3. Edit video presentasi 3 menit — Syuhada:** potong sesuai naskah, subtitle Inggris, pastikan badge dan angka di layar terbaca.
 - [ ] **6.4. Aturan kejujuran video (tidak bisa dinegosiasikan):** tidak ada badge Nano palsu; seed dinyatakan sebagai data contoh; anomali masuk video hanya bila seed ≥ 14 hari; angka rupiah dihitung kode dan ditampilkan sebagai perkiraan ("≈").
 - [ ] **6.5. Isi draft Devpost (29–30 Nov) — Haris:** deskripsi teks, repo, video, checklist; verifikasi status draft atas nama tim. (Teks draf sudah siap di `docs/devpost-draft.md`; tinggal isi tautan video + tempel ke form.)
@@ -78,6 +78,6 @@ Foto rak → hitung stok · anomali mandiri · penasihat harga/margin (mandiri) 
 | Kam 26 Nov | Penasihat Kulakan penuh; karantina per-item; struk + restock; uji end-to-end; malam: GO/NO-GO AI | Semua |
 | Jum 27 Nov | Foto nota (hanya bila go); pull-perbarui + ID komposit; uji dua perangkat #1 | Agung/Ahmad/Syuhada/Haris |
 | Sab 28 Nov | Penjualan nyata + uji end-to-end penuh; BEKU BUILD 12:00 WIB; sore: bug-bash + gladi bersih video | Semua |
-| Min 29 Nov | Rekam video 3 menit pagi; isi draft Devpost | Haris (+ Syuhada edit) |
+| Min 29 Nov | Take video 3 menit pagi; isi draft Devpost | Ahmad (take) + Haris (Devpost) + Syuhada (edit) |
 | Sen 30 Nov | Buffer: tonton ulang video; perbaiki teks Devpost; submit final | Haris |
 | Sel 1 Des 05:00 WIB | Deadline | — |
