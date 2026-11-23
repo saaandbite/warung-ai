@@ -105,6 +105,162 @@ export async function seedSampleProducts() {
   return toAdd.length;
 }
 
+// --- Penjualan contoh 14 hari ---
+// Mengisi riwayat penjualan CONTOH untuk 14 hari terakhir (tidak termasuk
+// hari ini, supaya penjualan nyata hari ini tetap bersih). Data ini murni
+// contoh — AI butuh riwayat beberapa hari supaya pertanyaan "barang apa
+// paling laris" dan Penasihat Kulakan bisa dijawab dengan masuk akal.
+// Penjualan contoh ikut masuk antrean sync, jadi terunggah ke Firestore
+// seperti penjualan biasa. Sekali isi, tidak bisa digandakan: bila sudah
+// ada penjualan di jendela 14 hari, fungsi ini mengembalikan 0.
+const SAMPLE_DAILY_RATE = [
+  { name: 'Indomie Goreng Original', rate: 3 },
+  { name: 'Kopiko Coffee Candy (Zak)', rate: 2 },
+  { name: 'Tolak Angin SidoMuncul (Sachet)', rate: 1 },
+  { name: 'Richeese Nabati Wafer Keju', rate: 2 },
+  { name: 'Kacang Dua Kelinci Sukro', rate: 1 },
+  { name: 'Teh Botol Sosro Kotak 250ml', rate: 2 },
+  { name: 'Kopi Kapal Api Special Mix', rate: 4 },
+  { name: 'SilverQueen Chocolate Milk 58g', rate: 1 },
+  { name: 'Indomie Kuah Ayam Bawang', rate: 2 },
+  { name: 'Sari Roti Sobek Coklat', rate: 1 },
+  { name: 'Beras Premium 1 kg', rate: 0.4 },
+  { name: 'Minyak Goreng Kita 1 Liter', rate: 0.3 },
+  { name: 'Telur Ayam 1/2 kg (~8 butir)', rate: 0.5 },
+  { name: 'Gula Pasir Gulaku 1 kg', rate: 0.3 },
+  { name: 'Air Mineral Aqua 600ml', rate: 3 },
+];
+
+// PRNG deterministik (mulberry32) supaya data contoh stabil antar-jalan.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Tanggal lokal (WIB) — JANGAN pakai toISOString, itu UTC dan bisa geser hari.
+function localDateString(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export async function seedSampleSales(days = 14) {
+  const products = await listProducts();
+  if (products.length === 0) return 0;
+  const byName = new Map(products.map((p) => [p.name.toLowerCase(), p]));
+
+  // Jendela 14 hari terakhir, TIDAK termasuk hari ini.
+  const today = new Date();
+  const windowDates = [];
+  for (let i = days; i >= 1; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    windowDates.push(localDateString(d));
+  }
+  const windowSet = new Set(windowDates);
+
+  // Sudah ada riwayat di jendela ini? Jangan gandakan.
+  const existing = await tx(['sales'], 'readonly', (t) => new Promise((resolve) => {
+    const req = t.objectStore('sales').getAll();
+    req.onsuccess = () => resolve(req.result);
+  }));
+  if (existing.some((s) => windowSet.has(s.date))) return 0;
+
+  // Rencana total per produk selama 14 hari, dibatasi stok-2 (sisakan 2).
+  const stockLeft = new Map(products.map((p) => [p.id, p.stock]));
+  const plan = new Map(); // productId -> total qty
+  for (const { name, rate } of SAMPLE_DAILY_RATE) {
+    const p = byName.get(name.toLowerCase());
+    if (!p) continue;
+    const total = Math.round(rate * days * (0.85 + mulberry32(p.id * 7 + 3)() * 0.3));
+    plan.set(p.id, Math.max(0, Math.min(total, Math.max(0, p.stock - 2))));
+  }
+
+  // Sebar total per produk ke hari-hari (acak deterministik per hari+produk).
+  const dayItems = windowDates.map(() => []); // per hari: [[productId, qty], ...]
+  for (const [id, total] of plan) {
+    let remaining = total;
+    const order = windowDates.map((_, i) => i);
+    const rnd = mulberry32(id * 31 + 11);
+    for (let i = order.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [order[i], order[j]] = [order[j], order[i]];
+    }
+    for (const di of order) {
+      if (remaining <= 0) break;
+      const qty = Math.min(remaining, 1 + Math.floor(mulberry32(id * 97 + di * 13 + 5)() * 3));
+      dayItems[di].push([id, qty]);
+      remaining -= qty;
+    }
+  }
+
+  // Tulis sebagai transaksi penjualan (1–3 nota per hari): stok berkurang,
+  // tiap penjualan masuk antrean sync — satu transaksi per nota.
+  let created = 0;
+  for (let di = 0; di < windowDates.length; di++) {
+    const items = dayItems[di];
+    if (items.length === 0) continue;
+    const rnd = mulberry32(1000 + di);
+    const shuffled = [...items];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const noteCount = Math.min(3, Math.max(1, Math.ceil(shuffled.length / 3)));
+    const notes = Array.from({ length: noteCount }, () => []);
+    shuffled.forEach(([id, qty], idx) => notes[idx % noteCount].push([id, qty]));
+
+    for (const noteItems of notes) {
+      if (noteItems.length === 0) continue;
+      const byId = new Map(products.map((p) => [p.id, p]));
+      const saleItems = noteItems.map(([id, qty]) => ({
+        productId: id,
+        name: byId.get(id).name,
+        price: byId.get(id).price,
+        qty,
+      }));
+      const total = saleItems.reduce((sum, it) => sum + it.price * it.qty, 0);
+      const paid = Math.ceil(total / 5000) * 5000;
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - di));
+      const hour = 7 + Math.floor(rnd() * 14); // 07:00–20:59
+      const minute = Math.floor(rnd() * 60);
+      const createdAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute).getTime();
+      const sale = {
+        items: saleItems,
+        total,
+        paid,
+        change: paid - total,
+        date: windowDates[di],
+        createdAt,
+      };
+      const saleId = await tx(['products', 'sales'], 'readwrite', (t) => {
+        const productsStore = t.objectStore('products');
+        for (const [id, qty] of noteItems) {
+          const p = byId.get(id);
+          const left = (stockLeft.get(id) ?? p.stock) - qty;
+          stockLeft.set(id, left);
+          productsStore.put({ ...p, stock: left });
+        }
+        const saleReq = t.objectStore('sales').add(sale);
+        return new Promise((resolve) => {
+          saleReq.onsuccess = () => resolve(saleReq.result);
+        });
+      });
+      await tx(['syncQueue'], 'readwrite', (t) => {
+        t.objectStore('syncQueue').add({ type: 'sale', refId: saleId, at: Date.now() });
+      });
+      created++;
+    }
+  }
+  return created;
+}
+
 // --- Penjualan ---
 // items: array [productId, qty]. Mengurangi stok, menyimpan penjualan,
 // dan mengantrekan penjualan untuk sinkronisasi cloud.

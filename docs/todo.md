@@ -17,7 +17,7 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **1.3. Penasihat Kulakan (26 Nov) — Agung + Ahmad:** satu panggilan model, JSON terstruktur (`responseSchema`), validasi pasca-model di JS (hitung ulang angka, potong dari bawah bila melebihi budget, buang item di luar katalog), kartu UI + angka rupiah yang dihitung kode.
 - [ ] **1.4. Go/no-go AI (26 Nov malam) — Semua:** kriteria cloud-only — satu pertanyaan kulakan dijawab model dari data toko yang baru diubah, badge benar, di HP. Nano bukan kriteria go.
 - [ ] **1.5. App Check + `firestore.rules` (23–24 Nov) — Ahmad (+ Agung):** App Check SDK + reCAPTCHA v3 (gratis, tanpa billing) + debug token hanya untuk localhost (tidak pernah di-commit) + tulis `firestore.rules` + enforcement di konsol + commit keduanya.
-- [ ] **1.6. Hapus klaim palsu di UI (23 Nov) — Haris:** hapus "Offline: Gemini Nano 4..." + placeholder "minggu ini" → "hari ini" + badge status model yang jujur.
+- [x] **1.6. Hapus klaim palsu di UI (SELESAI 23 Nov) — Haris:** hapus "Offline: Gemini Nano 4..." + placeholder "minggu ini" → "hari ini" + badge status model yang jujur. (Hint + placeholder + teks loading sudah diperbaiki; badge model menyusul bersama penerapan AI Logic.)
 - [ ] **1.7. Verifikasi kuota cloud (23–24 Nov) — Agung:** cek kuota aktual Flash-Lite di AI Studio sebelum memutuskan final.
 
 ## 2. Keamanan & kebenaran data — PIC: Syuhada
@@ -48,8 +48,8 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **5.2. Badge sinkronisasi:** "Terakhir sinkron HH:MM" di tab Ringkasan.
 - [ ] **5.3. Tab Stok:** ubah `<ul>` polos menjadi tabel/kartu (nama, harga, stok, badge status, aksi) + filter "Semua / Menipis / Habis".
 - [ ] **5.4. Tab Ringkasan:** 3 kartu metrik (omzet hari ini, jumlah transaksi, antrean cloud).
-- [ ] **5.5. Seed 14 hari (24 Nov) — Haris (+ Ahmad):** skrip seed + validasi realisme seed; seed dinyatakan sebagai data contoh.
-- [ ] **5.6. Ikon PWA 192/512 (termasuk maskable) — Haris.**
+- [x] **5.5. Seed 14 hari (SELESAI 23 Nov, lebih awal) — Haris:** skrip seed (`seedSampleSales()` di `js/db.js`, tombol "Isi Penjualan Contoh 14 Hari" di tab Stok) + validasi realisme seed; seed dinyatakan sebagai data contoh. Cek akhir di HP: Kopiko/Teh Botol/Aqua menipis (sisa 2), omzet contoh ~Rp 100rb/hari, tidak ada stok minus.
+- [x] **5.6. Ikon PWA 192/512 (SELESAI 23 Nov) — Haris:** ikon toko hijau (`icons/icon-192.png`, `icons/icon-512.png`); 512 didaftarkan sebagai maskable di manifest.
 - [ ] **5.7. Perbarui README + todo ini — Haris:** supaya statusnya jujur (sync/AI yang sebenarnya, batasan ID komposit, seed sebagai data contoh).
 - [ ] **5.8. Foto nota → draf restock (27 Nov, BERSYARAT) — Agung + Syuhada:** hanya bila Penasihat Kulakan lolos go/no-go 26 Nov; dipotong pertama bila Agung macet; demo hanya nota cetak.
 
@@ -59,7 +59,7 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 - [ ] **6.2. Rekam video (29 Nov pagi, dari build beku) — Haris:** rekam pagi hari (kuota penuh); penjualan Sabun 11 pcs harus sudah tersinkron sebelum rekaman.
 - [ ] **6.3. Edit video presentasi 3 menit — Syuhada:** potong sesuai naskah, subtitle Inggris, pastikan badge dan angka di layar terbaca.
 - [ ] **6.4. Aturan kejujuran video (tidak bisa dinegosiasikan):** tidak ada badge Nano palsu; seed dinyatakan sebagai data contoh; anomali masuk video hanya bila seed ≥ 14 hari; angka rupiah dihitung kode dan ditampilkan sebagai perkiraan ("≈").
-- [ ] **6.5. Isi draft Devpost (29–30 Nov) — Haris:** deskripsi teks, repo, video, checklist; verifikasi status draft atas nama tim.
+- [ ] **6.5. Isi draft Devpost (29–30 Nov) — Haris:** deskripsi teks, repo, video, checklist; verifikasi status draft atas nama tim. (Teks draf sudah siap di `docs/devpost-draft.md`; tinggal isi tautan video + tempel ke form.)
 - [ ] **6.6. Submit final (30 Nov) — Haris:** jauh sebelum 1 Des 05:00 WIB.
 
 ## 7. Daftar potong — jangan dibangun sebelum 1 Des

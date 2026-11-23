@@ -1,7 +1,7 @@
 // Warung AI — entry point.
 // Menangani navigasi tab, status online/offline, dan registrasi Service Worker.
 
-import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts } from './db.js';
+import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts, seedSampleSales } from './db.js';
 import { askAI, dailySummary } from './ai.js';
 
 // sync.js dimuat malas (lazy): modul itu butuh firebase-config.js +
@@ -539,6 +539,31 @@ if (seedSampleBtn) {
   seedSampleBtn.addEventListener('click', handleSeedProducts);
 }
 
+// Handler Isi Penjualan Contoh 14 Hari
+async function handleSeedSales() {
+  const seedSalesBtn = document.getElementById('seed-sales-btn');
+  if (seedSalesBtn) seedSalesBtn.disabled = true;
+  try {
+    const createdCount = await seedSampleSales();
+    if (createdCount > 0) {
+      alert(`Berhasil mengisi ${createdCount} penjualan contoh untuk 14 hari terakhir. Data ini murni contoh untuk menguji AI.`);
+    } else {
+      alert('Penjualan contoh 14 hari sudah ada, atau belum ada produk untuk dibuatkan riwayat.');
+    }
+    await renderStock();
+    await renderProducts();
+  } catch (err) {
+    alert(`Gagal mengisi penjualan contoh: ${err.message}`);
+  } finally {
+    if (seedSalesBtn) seedSalesBtn.disabled = false;
+  }
+}
+
+const seedSalesBtn = document.getElementById('seed-sales-btn');
+if (seedSalesBtn) {
+  seedSalesBtn.addEventListener('click', handleSeedSales);
+}
+
 // --- Stok: tambah produk + daftar stok ---
 document.getElementById('add-product-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -580,7 +605,7 @@ document.getElementById('ask-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = document.getElementById('ask-input');
   const out = document.getElementById('ai-answer');
-  out.textContent = 'Memikirkan jawaban…';
+  out.textContent = 'Mencari di data toko…';
   try {
     out.textContent = await askAI(input.value.trim());
   } catch (err) {

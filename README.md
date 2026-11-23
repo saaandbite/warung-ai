@@ -73,6 +73,8 @@ Done:
 - Offline cashier with Indonesian thousand separators and change spelled out in words
 - Stock tracking, live search, quick-cash buttons
 - Sync upload + pull (pull updates existing products from the cloud)
+- 14-day sample sales history (clearly labelled as sample data)
+- PWA icons (192/512, maskable)
 - Live on Vercel with CI/CD (every push to `main` deploys)
 
 In progress (before 1 Dec 2026):

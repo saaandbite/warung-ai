@@ -106,6 +106,9 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
           <span>Muat Data Contoh Warung</span>
         </button>
+        <button id="seed-sales-btn" type="button" class="btn-secondary">
+          <span>Isi Penjualan Contoh 14 Hari</span>
+        </button>
       </div>
       <p class="hint">Stok berkurang otomatis tiap terjual. Batas menipis: 5.</p>
       <form id="add-product-form">
@@ -119,11 +122,10 @@
 
     <section id="tab-ai" class="tab">
       <h2>Tanya AI</h2>
-      <p class="hint">Jawaban dari data tokomu sendiri. Offline: Gemini Nano 4.
-        Online: fallback ke Gemini cloud.</p>
+      <p class="hint">Jawaban dihitung dari data tokomu sendiri. Integrasi model AI (Firebase AI Logic) sedang disiapkan.</p>
       <form id="ask-form">
         <input id="ask-input" type="text"
-          placeholder="cth: barang apa paling laris minggu ini?" required />
+          placeholder="cth: barang apa paling laris hari ini?" required />
         <button type="submit">Tanya</button>
       </form>
       <div id="ai-answer" class="ai-answer"></div>
