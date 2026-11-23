@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function hasAppCheck() {
+      return request.app != null;
+    }
+
+    function isProductShape(data) {
+      return data.keys().hasOnly(['id', 'name', 'price', 'stock', 'createdAt', 'syncedAt'])
+        && data.id is int
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 200
+        && data.price is int
+        && data.price >= 0
+        && data.stock is int
+        && data.stock >= 0
+        && data.createdAt is int
+        && data.syncedAt is int;
+    }
+
+    function isSaleShape(data) {
+      return data.keys().hasOnly(['id', 'items', 'total', 'paid', 'change', 'date', 'createdAt', 'syncedAt'])
+        && data.id is int
+        && data.items is list
+        && data.items.size() > 0
+        && data.items.size() <= 200
+        && data.total is int
+        && data.total >= 0
+        && data.paid is int
+        && data.paid >= 0
+        && data.change is int
+        && data.change >= 0
+        && data.date is string
+        && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.createdAt is int
+        && data.syncedAt is int;
+    }
+
+    // Warung AI saat ini single-store, tanpa Firebase Auth. Akses dibatasi
+    // oleh App Check (klien harus lolos App Check enforcement) dan validasi
+    // bentuk dokumen. Aktifkan enforcement App Check di Firebase Console untuk
+    // Firestore dan Firebase AI Logic setelah klien live membawa token valid.
+    match /products/{productId} {
+      allow read: if hasAppCheck();
+      allow create, update: if hasAppCheck()
+        && isProductShape(request.resource.data)
+        && request.resource.data.id == int(productId);
+      allow delete: if false;
+    }
+
+    match /sales/{saleId} {
+      allow read: if hasAppCheck();
+      allow create, update: if hasAppCheck()
+        && isSaleShape(request.resource.data)
+        && request.resource.data.id == int(saleId);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

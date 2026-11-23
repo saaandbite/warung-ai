@@ -8,5 +8,10 @@ export const firebaseConfig = {
   storageBucket: "warung-ai-hybrid.firebasestorage.app",
   messagingSenderId: "1026774936149",
   appId: "1:1026774936149:web:3c0cbddaea6dca154b42dc",
-  measurementId: "G-G1JLWQW59Y"
+  measurementId: "G-G1JLWQW59Y",
+
+  // reCAPTCHA v3 site key untuk Firebase App Check (publik).
+  // TODO(Ahmad): isi dengan site key dari https://www.google.com/recaptcha/admin
+  // setelah key dibuat & didaftarkan di Firebase Console > App Check.
+  appCheckSiteKey: "",
 };
