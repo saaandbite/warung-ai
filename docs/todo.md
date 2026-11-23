@@ -6,8 +6,8 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 
 ## 0. Keputusan yang harus diputus malam ini (23 Nov) — PIC: Haris
 
-- [ ] Sahkan wedge: Penasihat Kulakan ("kasir yang memberi tahu pemilik warung apa yang harus dibeli besok — dengan uang yang ia punya") atau pilih foto nota.
-- [ ] Foto nota dibangun atau dicoret.
+- [x] Sahkan wedge: Penasihat Kulakan ("kasir yang memberi tahu pemilik warung apa yang harus dibeli besok — dengan uang yang ia punya") — **DISAHKAN Haris 23 Nov 11:15 WIB.** Foto nota bukan wedge.
+- [ ] Foto nota dibangun atau dicoret. (Mengikuti go/no-go 26 Nov: hanya dibangun bila Penasihat Kulakan lolos; dipotong pertama bila Agung macet.)
 - [ ] Pilot: kunjungan warung atau seed dari chat warung yang dikenal (seed dinyatakan jujur sebagai data contoh).
 
 ## 1. AI Logic + App Check (gerbang utama — dikerjakan dulu)
