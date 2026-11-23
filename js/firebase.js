@@ -6,12 +6,12 @@
 // jalan dan pemanggil mendapat error yang jelas.
 //
 // App Check (tugas 1.5):
-// - Produksi/live: reCAPTCHA v3 via ReCaptchaV3Provider.
+// - Produksi/live: Fraud Defense (reCAPTCHA Enterprise) via ReCaptchaEnterpriseProvider.
 // - Localhost/dev: debug provider. SDK mencetak debug token ke console saat
 //   pertama jalan; daftarkan token itu di Firebase Console > App Check >
 //   Apps > Manage debug tokens. Token debug TIDAK boleh di-commit.
 // - Site key dibaca dari firebaseConfig.appCheckSiteKey (isi di
-//   js/firebase-config.js; nilai reCAPTCHA v3 site key itu publik).
+//   js/firebase-config.js; nilai site key Fraud Defense itu publik).
 //
 // Enforcement App Check diaktifkan di Firebase Console (Firestore +
 // Firebase AI Logic) setelah klien siap — itu langkah manual, bukan kode.
@@ -39,7 +39,7 @@ async function loadFirebaseConfig() {
 
 async function initAppCheck(firebaseApp, firebaseConfig, appCheckMod) {
   if (appCheck) return appCheck;
-  const { initializeAppCheck, ReCaptchaV3Provider } = appCheckMod;
+  const { initializeAppCheck, ReCaptchaEnterpriseProvider } = appCheckMod;
 
   if (isLocalhost()) {
     // Mode debug: SDK akan log token debug ke console. Daftarkan token itu
@@ -61,12 +61,12 @@ async function initAppCheck(firebaseApp, firebaseConfig, appCheckMod) {
   const siteKey = firebaseConfig.appCheckSiteKey;
   if (!siteKey && !isLocalhost()) {
     throw new Error(
-      'App Check site key belum diisi (firebaseConfig.appCheckSiteKey). Isi reCAPTCHA v3 site key untuk deployment live.',
+      'App Check site key belum diisi (firebaseConfig.appCheckSiteKey). Isi Fraud Defense site key untuk deployment live.',
     );
   }
 
   appCheck = initializeAppCheck(firebaseApp, {
-    provider: new ReCaptchaV3Provider(siteKey || 'MISSING_APPCHECK_SITE_KEY'),
+    provider: new ReCaptchaEnterpriseProvider(siteKey || 'MISSING_APPCHECK_SITE_KEY'),
     isTokenAutoRefreshEnabled: true,
   });
   return appCheck;

@@ -10,8 +10,8 @@ export const firebaseConfig = {
   appId: "1:1026774936149:web:3c0cbddaea6dca154b42dc",
   measurementId: "G-G1JLWQW59Y",
 
-  // reCAPTCHA v3 site key untuk Firebase App Check (publik).
-  // TODO(Ahmad): isi dengan site key dari https://www.google.com/recaptcha/admin
-  // setelah key dibuat & didaftarkan di Firebase Console > App Check.
+  // Fraud Defense (reCAPTCHA Enterprise) site key untuk Firebase App Check (publik).
+  // TODO(Ahmad): isi dengan site key yang dibuat Haris
+  // setelah key didaftarkan di Firebase Console > App Check > Apps.
   appCheckSiteKey: "",
 };

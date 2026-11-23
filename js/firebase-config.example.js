@@ -11,10 +11,10 @@ export const firebaseConfig = {
   messagingSenderId: 'ISI_SENDER_ID_MU',
   appId: 'ISI_APP_ID_MU',
 
-  // reCAPTCHA v3 site key untuk Firebase App Check (publik, aman di-commit).
-  // Buat di https://www.google.com/recaptcha/admin lalu daftarkan juga di
+  // Fraud Defense (reCAPTCHA Enterprise) site key untuk Firebase App Check (publik, aman di-commit).
+  // Buat di Google Cloud Console > Fraud Defense, lalu daftarkan juga di
   // Firebase Console > App Check. Jangan taruh debug token App Check di sini.
-  appCheckSiteKey: 'ISI_RECAPTCHA_V3_SITE_KEY_MU',
+  appCheckSiteKey: 'ISI_FRAUD_DEFENSE_SITE_KEY_MU',
 };
 
 // Catatan:
