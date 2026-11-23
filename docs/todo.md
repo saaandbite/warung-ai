@@ -22,32 +22,32 @@ Dokumen ini adalah daftar kerja tim **TDR-3000** sampai submit **1 Des 2026 05:0
 
 ## 2. Keamanan & kebenaran data — PIC: Syuhada
 
-- [ ] **2.1. Stored-XSS:** render dengan `textContent` / escape HTML di semua jalur (produk, keranjang, hasil pencarian). (~1 jam)
-- [ ] **2.2. Bug tanggal UTC:** pakai tanggal lokal WIB saat mencatat `date` dan `getTodaySummary()`. (<1 jam)
-- [ ] **2.3. Checkout aman:** disable tombol selama `recordSale()` async; cek ulang stok di dalam transaksi tulis; validasi input + try/catch form. (~0,5 hari)
+- [x] **2.1. Stored-XSS:** render dengan `textContent` / escape HTML di semua jalur (produk, keranjang, hasil pencarian). (~1 jam) (SELESAI 23 Nov — Syuu)
+- [x] **2.2. Bug tanggal UTC:** pakai tanggal lokal WIB saat mencatat `date` dan `getTodaySummary()`. (<1 jam) (SELESAI 23 Nov — Syuu)
+- [x] **2.3. Checkout aman:** disable tombol selama `recordSale()` async; cek ulang stok di dalam transaksi tulis; validasi input + try/catch form. (~0,5 hari) (SELESAI 23 Nov — Syuu)
 
 ## 3. Kasir: struk + restock — PIC: Syuhada
 
-- [ ] **3.1. Modal struk:** nomor nota, rincian barang, total, kembalian; tombol "Transaksi Baru" yang mengosongkan keranjang.
-- [ ] **3.2. Cetak struk:** `window.print()` + `@media print` (thermal 58/80mm).
-- [ ] **3.3. Bagikan struk via WhatsApp:** tombol salin teks nota.
-- [ ] **3.4. Restock cepat:** tombol `+ Stok` per produk + ambang menipis per produk + fungsi `updateProductStock(id, addedQty)` di `js/db.js` yang mencatat ke `syncQueue`.
-- [ ] **3.5. Saran pembulatan kembalian:** contoh: total Rp 23.500, dibayar Rp 50.000 → saran "minta Rp 3.500 agar kembalian genap Rp 30.000".
+- [x] **3.1. Modal struk:** nomor nota, rincian barang, total, kembalian; tombol "Transaksi Baru" yang mengosongkan keranjang. (SELESAI 23 Nov — Syuu)
+- [x] **3.2. Cetak struk:** `window.print()` + `@media print` (thermal 58/80mm). (SELESAI 23 Nov — Syuu)
+- [x] **3.3. Bagikan struk via WhatsApp:** tombol salin teks nota. (SELESAI 23 Nov — Syuu)
+- [x] **3.4. Restock cepat:** tombol `+ Stok` per produk + ambang menipis per produk + fungsi `updateProductStock(id, addedQty)` di `js/db.js` yang mencatat ke `syncQueue`. (SELESAI 23 Nov — Syuu)
+- [x] **3.5. Saran pembulatan kembalian:** contoh: total Rp 23.500, dibayar Rp 50.000 → saran "minta Rp 3.500 agar kembalian genap Rp 30.000". (SELESAI 23 Nov — Syuu)
 
 ## 4. Sinkronisasi (perbaikan minimal) — PIC: Haris
 
 - [x] **4.1. Pull memperbarui produk yang sudah ada (SELESAI 23 Nov, commit 75fbd01):** stok/harga/nama diperbarui bila data cloud lebih baru (`syncedAt`) dan isinya berbeda; tidak menimpa perubahan lokal yang masih antre.
-- [ ] **4.2. Transaksi atomik — Haris:** penjualan + `syncQueue.add()` dalam transaksi yang sama. (~30 menit — didahulukan)
+- [x] **4.2. Transaksi atomik — Haris:** penjualan + `syncQueue.add()` dalam transaksi yang sama. (~30 menit — didahulukan) (SELESAI 23 Nov — Syuu)
 - [ ] **4.3. Karantina per-item gagal + retry count — Haris:** satu item gagal tidak boleh memblokir antrean selamanya.
 - [ ] **4.4. Doc ID komposit `${deviceId}-${localId}` (27 Nov) — Haris:** pengganti migrasi UUID penuh (ditunda pasca-lomba).
 - [ ] **4.5. Try/catch per dokumen saat pull — Haris:** satu dokumen korup tidak mematikan seluruh pull.
 
 ## 5. UX & kelengkapan produk — PIC: Syuhada (kecuali disebut lain)
 
-- [ ] **5.1. Ganti `alert()` dengan toast** untuk alur demo yang kritis (sisanya boleh tetap `alert` bila waktu habis).
-- [ ] **5.2. Badge sinkronisasi:** "Terakhir sinkron HH:MM" di tab Ringkasan.
-- [ ] **5.3. Tab Stok:** ubah `<ul>` polos menjadi tabel/kartu (nama, harga, stok, badge status, aksi) + filter "Semua / Menipis / Habis".
-- [ ] **5.4. Tab Ringkasan:** 3 kartu metrik (omzet hari ini, jumlah transaksi, antrean cloud).
+- [x] **5.1. Ganti `alert()` dengan toast** untuk alur demo yang kritis (sisanya boleh tetap `alert` bila waktu habis). (SELESAI 23 Nov — Syuu)
+- [x] **5.2. Badge sinkronisasi:** "Terakhir sinkron HH:MM" di tab Ringkasan. (SELESAI 23 Nov — Syuu)
+- [x] **5.3. Tab Stok:** ubah `<ul>` polos menjadi tabel/kartu (nama, harga, stok, badge status, aksi) + filter "Semua / Menipis / Habis". (SELESAI 23 Nov — Syuu)
+- [x] **5.4. Tab Ringkasan:** 3 kartu metrik (omzet hari ini, jumlah transaksi, antrean cloud). (SELESAI 23 Nov — Syuu)
 - [x] **5.5. Seed 14 hari (SELESAI 23 Nov, lebih awal) — Haris:** skrip seed (`seedSampleSales()` di `js/db.js`, tombol "Isi Penjualan Contoh 14 Hari" di tab Stok) + validasi realisme seed; seed dinyatakan sebagai data contoh. Cek akhir di HP: Kopiko/Teh Botol/Aqua menipis (sisa 2), omzet contoh ~Rp 100rb/hari, tidak ada stok minus.
 - [x] **5.6. Ikon PWA 192/512 (SELESAI 23 Nov) — Haris:** ikon toko hijau (`icons/icon-192.png`, `icons/icon-512.png`); 512 didaftarkan sebagai maskable di manifest.
 - [ ] **5.7. Perbarui README + todo ini — Haris:** supaya statusnya jujur (sync/AI yang sebenarnya, batasan ID komposit, seed sebagai data contoh).
