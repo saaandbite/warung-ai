@@ -11,7 +11,6 @@ export const firebaseConfig = {
   measurementId: "G-G1JLWQW59Y",
 
   // Fraud Defense (reCAPTCHA Enterprise) site key untuk Firebase App Check (publik).
-  // TODO(Ahmad): isi dengan site key yang dibuat Haris
-  // setelah key didaftarkan di Firebase Console > App Check > Apps.
-  appCheckSiteKey: "",
+  // Dibuat Haris 23 Nov 2026, didaftarkan di Firebase Console > App Check > Apps.
+  appCheckSiteKey: "6Lehcy4uAAAAALnhE6KMEsHPhcSxBpp9Dpl4gIsB",
 };
