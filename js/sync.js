@@ -87,10 +87,11 @@ export async function syncNow() {
 }
 
 // Tarik data dari Firestore ke perangkat ini (pull sync).
-// Hanya MENAMBAH produk & penjualan yang belum ada di IndexedDB —
-// tidak menimpa data lokal, supaya perubahan lokal yang belum
-// terkirim tidak hilang. Mengembalikan { products, sales } = jumlah
-// item baru yang masuk.
+// Produk & penjualan baru ditambah; produk yang sudah ada diperbarui
+// (nama/harga/stok) bila data cloud lebih baru — lihat
+// upsertProductFromCloud di js/db.js. Mengembalikan
+// { products, updatedProducts, sales } = jumlah produk baru, produk
+// yang diperbarui, dan penjualan baru yang masuk.
 //
 // Batasan yang diketahui: ID produk/penjualan adalah nomor urut lokal
 // (auto-increment). Kalau dua perangkat membuat produk berbeda sebelum
@@ -105,20 +106,23 @@ export async function pullFromCloud() {
   const { firestore, collection, getDocs } = await getDbInstance();
 
   let addedProducts = 0;
+  let updatedProducts = 0;
   let addedSales = 0;
 
   const productSnap = await getDocs(collection(firestore, 'products'));
   for (const d of productSnap.docs) {
     const data = d.data();
     if (typeof data.id === 'undefined') continue;
-    const added = await upsertProductFromCloud({
+    const result = await upsertProductFromCloud({
       id: Number(data.id),
       name: data.name,
       price: data.price,
       stock: data.stock,
       createdAt: data.createdAt,
+      syncedAt: data.syncedAt,
     });
-    if (added) addedProducts += 1;
+    if (result === 'added') addedProducts += 1;
+    else if (result === 'updated') updatedProducts += 1;
   }
 
   const saleSnap = await getDocs(collection(firestore, 'sales'));
@@ -137,5 +141,5 @@ export async function pullFromCloud() {
     if (added) addedSales += 1;
   }
 
-  return { products: addedProducts, sales: addedSales };
+  return { products: addedProducts, updatedProducts, sales: addedSales };
 }

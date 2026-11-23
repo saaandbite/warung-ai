@@ -55,8 +55,8 @@ window.addEventListener('online', async () => {
   updateNetStatus();
   try {
     const pulled = await pullFromCloud();
-    if (pulled.products > 0 || pulled.sales > 0) {
-      console.log(`Menarik ${pulled.products} produk & ${pulled.sales} penjualan dari Firestore.`);
+    if (pulled.products > 0 || pulled.updatedProducts > 0 || pulled.sales > 0) {
+      console.log(`Menarik ${pulled.products} produk baru, ${pulled.updatedProducts} produk diperbarui & ${pulled.sales} penjualan dari Firestore.`);
       await renderProducts();
       await renderStock();
     }
@@ -629,7 +629,7 @@ document.getElementById('pull-btn').addEventListener('click', async () => {
   btn.textContent = 'Menarik data…';
   try {
     const pulled = await pullFromCloud();
-    alert(`Berhasil menarik ${pulled.products} produk dan ${pulled.sales} penjualan dari cloud.`);
+    alert(`Berhasil menarik ${pulled.products} produk baru, ${pulled.updatedProducts} produk diperbarui, dan ${pulled.sales} penjualan dari cloud.`);
     await renderProducts();
     await renderStock();
   } catch (err) {

@@ -178,22 +178,60 @@ export async function getTodaySummary() {
 
 // --- Tarik dari cloud (pull) ---
 // Menyimpan data dari Firestore ke IndexedDB TANPA masuk antrean
-// sinkronisasi (datanya memang sudah ada di cloud). Hanya menambah
-// yang belum ada — tidak menimpa data lokal, supaya perubahan lokal
-// yang belum terkirim tidak hilang.
+// sinkronisasi (datanya memang sudah ada di cloud). Produk baru ditambah;
+// produk yang sudah ada DIPERBARUI (nama/harga/stok) bila data cloud lebih
+// baru (syncedAt lebih besar) dan isinya berbeda — tapi tidak pernah menimpa
+// produk yang punya perubahan lokal yang masih antre di syncQueue.
+// Mengembalikan 'added' (produk baru), 'updated' (produk lama diperbarui
+// dari cloud), atau false (dilewati — cloud tidak lebih baru / tidak ada
+// perubahan / ada perubahan lokal yang belum terkirim).
 export async function upsertProductFromCloud(product) {
   const existing = await getProduct(product.id);
-  if (existing) return false;
+  if (!existing) {
+    await tx(['products'], 'readwrite', (t) => {
+      t.objectStore('products').put({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        stock: product.stock,
+        createdAt: product.createdAt || Date.now(),
+        syncedAt: product.syncedAt || Date.now(),
+      });
+    });
+    return 'added';
+  }
+
+  // Jangan timpa perubahan lokal yang belum terkirim ke cloud.
+  const pending = await hasPendingProductSync(product.id);
+  if (pending) return false;
+
+  // Perbarui hanya bila cloud lebih baru DAN isinya memang berbeda.
+  // Produk lokal lama tidak punya syncedAt (dianggap 0) sehingga tarikan
+  // pertama sesudah perbaikan ini tetap memperbarui bila isinya berbeda.
+  const cloudNewer = (product.syncedAt || 0) > (existing.syncedAt || 0);
+  const differs =
+    existing.name !== product.name ||
+    existing.price !== product.price ||
+    existing.stock !== product.stock;
+  if (!cloudNewer || !differs) return false;
+
   await tx(['products'], 'readwrite', (t) => {
     t.objectStore('products').put({
-      id: product.id,
+      ...existing,
       name: product.name,
       price: product.price,
       stock: product.stock,
-      createdAt: product.createdAt || Date.now(),
+      syncedAt: product.syncedAt || existing.syncedAt || Date.now(),
     });
   });
-  return true;
+  return 'updated';
+}
+
+// Apakah produk ini punya perubahan lokal yang masih antre di syncQueue
+// (belum terkirim ke Firestore)? Dipakai pull agar tidak menimpa edit lokal.
+export async function hasPendingProductSync(productId) {
+  const queue = await getSyncQueue();
+  return queue.some((item) => item.type === 'product' && item.refId === productId);
 }
 
 export async function upsertSaleFromCloud(sale) {
