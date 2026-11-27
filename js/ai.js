@@ -92,7 +92,7 @@ function buildPrompt(question, ctx) {
     'Answer ONLY from the facts and data below. The facts are already computed and correct; repeat them, do not reinterpret them.',
     'If the data cannot answer the question, say so briefly.',
     'Never calculate, compare, or invent numbers yourself.',
-    'Answer in at most 2 short sentences, plain text.',
+    'Answer ONLY what was asked, in 1 or 2 short sentences, plain text. Do not add any other information.',
     '',
     'Facts:',
     ...facts.map((f) => `- ${f}`),
