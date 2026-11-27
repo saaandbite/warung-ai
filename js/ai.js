@@ -64,21 +64,35 @@ async function buildStoreContext() {
 }
 
 function buildPrompt(question, ctx) {
-  const data = {
-    transactionsToday: ctx.today.count,
-    revenueTodayRupiah: ctx.today.total,
-    itemsSoldToday: ctx.itemsSoldToday,
-    products: ctx.products.map((p) => ({ name: p.name, priceRupiah: p.price, stock: p.stock })),
-    lowStockItems: ctx.lowStock.map((p) => ({ name: p.name, stock: p.stock })),
-    lowStockRule: `stock <= ${LOW_STOCK} counts as running low`,
-  };
+  // Perbandingan (termahal, stok terbanyak, dst.) dihitung kode: model kecil
+  // seperti Nano sering salah membandingkan angka sendiri.
+  const byPrice = [...ctx.products].sort((a, b) => b.price - a.price);
+  const byStock = [...ctx.products].sort((a, b) => b.stock - a.stock);
+  const rp = (n) => `Rp ${n.toLocaleString('id-ID')}`;
+  const desc = (p) => `${p.name} (price ${rp(p.price)}, stock ${p.stock})`;
+  const facts = [
+    `Transactions today: ${ctx.today.count}. Revenue today: ${rp(ctx.today.total)}.`,
+    ctx.itemsSoldToday.length
+      ? `Best seller today: ${ctx.itemsSoldToday[0].name} (${ctx.itemsSoldToday[0].qty} sold).`
+      : 'No sales yet today, so there is no best seller today.',
+    byPrice.length && `Most expensive product: ${desc(byPrice[0])}. Cheapest product: ${desc(byPrice.at(-1))}.`,
+    byStock.length && `Most stock: ${desc(byStock[0])}. Least stock: ${desc(byStock.at(-1))}.`,
+    ctx.lowStock.length
+      ? `Running low (stock ${LOW_STOCK} or less): ${ctx.lowStock.map(desc).join(', ')}.`
+      : `Running low: NONE. Every product has more than ${LOW_STOCK} in stock, so nothing needs restocking urgently.`,
+  ].filter(Boolean);
   return [
     'You are the assistant of a small Indonesian shop (warung).',
-    'Answer ONLY from the store data below. If the data cannot answer the question, say so briefly.',
-    'Use the numbers exactly as given; never calculate or invent new numbers.',
-    'Answer in at most 4 short sentences, plain text.',
+    'Answer ONLY from the facts and data below. The facts are already computed and correct; repeat them, do not reinterpret them.',
+    'If the data cannot answer the question, say so briefly.',
+    'Never calculate, compare, or invent numbers yourself.',
+    'Answer in at most 2 short sentences, plain text.',
     '',
-    `Store data (JSON): ${JSON.stringify(data)}`,
+    'Facts:',
+    ...facts.map((f) => `- ${f}`),
+    '',
+    `Items sold today (JSON): ${JSON.stringify(ctx.itemsSoldToday)}`,
+    `All products (JSON): ${JSON.stringify(ctx.products.map((p) => ({ name: p.name, priceRupiah: p.price, stock: p.stock })))}`,
     '',
     `Question: ${question}`,
     '',
