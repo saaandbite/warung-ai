@@ -15,7 +15,7 @@
 import { getTodaySummary, listProducts } from './db.js';
 import { getFirebaseApp, FIREBASE_SDK } from './firebase.js';
 
-const CLOUD_MODEL = 'gemini-2.5-flash-lite';
+const CLOUD_MODEL = 'gemini-3.5-flash-lite';
 const LOW_STOCK = 5;
 
 let modelPromise = null;
@@ -58,17 +58,20 @@ function buildPrompt(question, ctx) {
     revenueTodayRupiah: ctx.today.total,
     itemsSoldToday: ctx.itemsSoldToday,
     products: ctx.products.map((p) => ({ name: p.name, priceRupiah: p.price, stock: p.stock })),
-    lowStockThreshold: LOW_STOCK,
+    lowStockItems: ctx.lowStock.map((p) => ({ name: p.name, stock: p.stock })),
+    lowStockRule: `stock <= ${LOW_STOCK} counts as running low`,
   };
   return [
     'You are the assistant of a small Indonesian shop (warung).',
     'Answer ONLY from the store data below. If the data cannot answer the question, say so briefly.',
     'Use the numbers exactly as given; never calculate or invent new numbers.',
-    'Reply in the same language as the question (Indonesian or English), in at most 4 short sentences, plain text.',
+    'Answer in at most 4 short sentences, plain text.',
     '',
     `Store data (JSON): ${JSON.stringify(data)}`,
     '',
     `Question: ${question}`,
+    '',
+    'IMPORTANT: write your answer in the SAME language as the question above. English question -> English answer. Indonesian question -> Indonesian answer.',
   ].join('\n');
 }
 
