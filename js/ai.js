@@ -18,10 +18,14 @@ import { getFirebaseApp, FIREBASE_SDK } from './firebase.js';
 const CLOUD_MODEL = 'gemini-3.5-flash-lite';
 const LOW_STOCK = 5;
 
+// ?cloud di URL: paksa jalur cloud, untuk menguji/menunjukkan perilaku di
+// perangkat tanpa Gemini Nano (mis. Chrome Android) dari laptop yang punya Nano.
+const FORCE_CLOUD = new URLSearchParams(globalThis.location?.search ?? '').has('cloud');
+
 const models = new Map();
 
 // Satu model hybrid per konfigurasi (Q&A teks biasa, Kulakan berformat JSON).
-function getModel(kind = 'text', jsonSchema = null) {
+function getModel(kind = 'text', jsonSchema = null, preferCloud = false) {
   if (!models.has(kind)) {
     const promise = (async () => {
       const app = await getFirebaseApp();
@@ -34,7 +38,9 @@ function getModel(kind = 'text', jsonSchema = null) {
       }
       // Backend default = Gemini Developer API (free tier).
       return getGenerativeModel(getAI(app), {
-        mode: InferenceMode.PREFER_ON_DEVICE,
+        mode: FORCE_CLOUD
+          ? InferenceMode.ONLY_IN_CLOUD
+          : preferCloud ? InferenceMode.PREFER_IN_CLOUD : InferenceMode.PREFER_ON_DEVICE,
         inCloudParams,
         onDeviceParams,
       });
@@ -155,9 +161,8 @@ export async function dailySummary() {
 
 // --- Penasihat Kulakan: "dengan uang Rp X, besok beli apa?" ---
 // Kode menghitung kandidat (laku per hari, sisa hari stok, jumlah yang perlu
-// dibeli). Model hanya memilih prioritas + alasan. Kode lalu memvalidasi:
-// buang barang di luar kandidat, batasi jumlah, potong dari bawah bila
-// melebihi budget. Semua rupiah dihitung kode.
+// dibeli) dan menyusun daftar belanja dalam budget. Model (Nano/cloud) hanya
+// menulis alasan per barang. Semua rupiah dihitung kode.
 //
 // shortcut: harga kulakan belum dicatat, jadi pakai harga jual sebagai
 // perkiraan atas (belanja nyata lebih murah); ganti bila produk punya harga modal.
@@ -174,10 +179,9 @@ const RESTOCK_SCHEMA = {
         type: 'object',
         properties: {
           name: { type: 'string' },
-          qty: { type: 'integer' },
           reason: { type: 'string' },
         },
-        required: ['name', 'qty', 'reason'],
+        required: ['name', 'reason'],
       },
     },
   },
@@ -254,16 +258,20 @@ function localPicks(candidates) {
   }));
 }
 
-function buildRestockPrompt(budget, candidates) {
+function buildRestockPrompt(plan, candidates) {
+  const facts = plan.items.map((it) => {
+    const c = candidates.find((x) => x.name === it.name);
+    return { nama: it.name, jumlahBeli: it.qty, stokSekarang: c.stock, lakuPerHari: c.soldPerDay, habisDalamHari: c.daysLeft };
+  });
   return [
-    'You help the owner of a small Indonesian shop (warung) decide what to buy tomorrow at the wholesale market.',
-    `Budget: ${budget} rupiah. Total cost = sum of unitPrice * qty and must not exceed the budget.`,
-    'Choose from the candidates below ONLY. qty must be between 1 and suggestedQty.',
-    'Prioritize items that will run out soonest (low daysLeft) and sell fastest (high soldPerDay).',
-    'List items in priority order, most important first.',
-    'reason: one short sentence in Indonesian (max 12 words), based on the numbers given.',
+    'You help the owner of a small Indonesian shop (warung) understand the shopping list for tomorrow.',
+    'The list and all numbers are already decided. Do not change them.',
+    'For EACH item, write one short reason in Indonesian (max 12 words) why it should be bought.',
+    'The reason MUST use its lakuPerHari or habisDalamHari numbers, written with digits like the example (never write the field names). Do not guess about taste, weather, or customers.',
+    'Example reason: "Laku 2 per hari, stok habis besok."',
+    'Return every item with name = its nama, same order.',
     '',
-    `Candidates (JSON): ${JSON.stringify(candidates)}`,
+    `Shopping list (JSON): ${JSON.stringify(facts)}`,
   ].join('\n');
 }
 
@@ -271,25 +279,33 @@ function parseJson(text) {
   return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
 }
 
+// Kode menyusun daftar + semua angka; model hanya menulis alasan per barang.
 // -> { items, total, leftover, source, candidatesCount }
 export async function adviseRestock(budget) {
   const from = new Date();
   from.setDate(from.getDate() - HISTORY_DAYS);
   const [products, sales] = await Promise.all([listProducts(), getSalesSince(localDateString(from))]);
   const candidates = buildRestockCandidates(products, sales);
-  if (candidates.length === 0) {
-    return { items: [], total: 0, leftover: budget, source: 'local', candidatesCount: 0 };
-  }
+  const plan = planRestock(candidates, localPicks(candidates), budget);
+  const base = { ...plan, source: 'local', candidatesCount: candidates.length };
+  if (plan.items.length === 0) return base;
 
   try {
-    const model = await getModel('restock', RESTOCK_SCHEMA);
-    const result = await model.generateContent(buildRestockPrompt(budget, candidates));
-    const plan = planRestock(candidates, parseJson(result.response.text()).items ?? [], budget);
-    if (plan.items.length > 0) {
-      return { ...plan, source: result.response.inferenceSource || 'in_cloud', candidatesCount: candidates.length };
+    // Online: cloud (alasan lebih akurat). Offline: SDK jatuh ke Nano.
+    const model = await getModel('restock', RESTOCK_SCHEMA, true);
+    const result = await model.generateContent(buildRestockPrompt(plan, candidates));
+    const reasons = new Map(
+      (parseJson(result.response.text()).items ?? [])
+        .filter((r) => typeof r.reason === 'string' && r.reason.trim())
+        .map((r) => [String(r.name).toLowerCase(), r.reason.trim().slice(0, 160)]),
+    );
+    const items = plan.items.map((it) => ({ ...it, reason: reasons.get(it.name.toLowerCase()) ?? it.reason }));
+    // Badge model hanya bila alasan model benar-benar dipakai.
+    if (items.some((it) => reasons.has(it.name.toLowerCase()))) {
+      return { ...base, items, source: result.response.inferenceSource || 'in_cloud' };
     }
   } catch (err) {
-    console.warn('[Warung AI] Kulakan: model tidak tersedia, pakai urutan lokal:', err);
+    console.warn('[Warung AI] Kulakan: model tidak tersedia, pakai alasan lokal:', err);
   }
-  return { ...planRestock(candidates, localPicks(candidates), budget), source: 'local', candidatesCount: candidates.length };
+  return base;
 }

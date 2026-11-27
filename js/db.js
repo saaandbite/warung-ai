@@ -165,12 +165,13 @@ export async function seedSampleSales(days = 14) {
   }
   const windowSet = new Set(windowDates);
 
-  // Sudah ada riwayat di jendela ini? Jangan gandakan.
+  // Sudah ada penjualan CONTOH di jendela ini? Jangan gandakan.
+  // (Penjualan asli tidak menghalangi; tanda `sample` ikut tersinkron.)
   const existing = await tx(['sales'], 'readonly', (t) => new Promise((resolve) => {
     const req = t.objectStore('sales').getAll();
     req.onsuccess = () => resolve(req.result);
   }));
-  if (existing.some((s) => windowSet.has(s.date))) return 0;
+  if (existing.some((s) => s.sample && windowSet.has(s.date))) return 0;
 
   // Rencana total per produk selama 14 hari, dibatasi stok-2 (sisakan 2).
   const stockLeft = new Map(products.map((p) => [p.id, p.stock]));
@@ -238,6 +239,7 @@ export async function seedSampleSales(days = 14) {
         change: paid - total,
         date: windowDates[di],
         createdAt,
+        sample: true,
       };
       const saleId = await tx(['products', 'sales'], 'readwrite', (t) => {
         const productsStore = t.objectStore('products');
@@ -491,6 +493,7 @@ export async function upsertSaleFromCloud(sale) {
       change: sale.change,
       date: sale.date,
       createdAt: sale.createdAt || Date.now(),
+      sample: sale.sample === true,
     });
   });
   return true;
