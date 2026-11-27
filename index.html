@@ -28,7 +28,7 @@
               <span class="search-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
               </span>
-              <input id="product-search" type="search" placeholder="Cari nama barang (misal: Indomie, Kopi)..." autocomplete="off" />
+              <input id="product-search" type="search" placeholder="Cari nama barang (misal: Mi Goreng, Kopi)..." autocomplete="off" />
               <button id="search-clear-btn" type="button" class="btn-clear-search" title="Hapus pencarian" style="display: none;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
@@ -119,7 +119,7 @@
       <form id="add-product-form" class="add-product-form">
         <h3>Tambah Barang Baru</h3>
         <div class="add-product-grid">
-          <input name="name" type="text" placeholder="Nama barang (mis. Indomie Goreng)" required autocomplete="off" />
+          <input name="name" type="text" placeholder="Nama barang (mis. Mi Goreng Instan)" required autocomplete="off" />
           <input name="price" type="number" min="100" step="100" placeholder="Harga Jual (Rp)" required />
           <input name="stock" type="number" min="0" placeholder="Stok awal" required />
           <button type="submit" id="add-product-btn">Tambah Barang</button>
@@ -137,13 +137,23 @@
 
     <section id="tab-ai" class="tab">
       <h2>Tanya AI</h2>
-      <p class="hint">Jawaban dihitung dari data tokomu sendiri. Integrasi model AI (Firebase AI Logic) sedang disiapkan.</p>
+      <p class="hint">Jawaban diambil dari data tokomu sendiri, lewat Gemini Nano di perangkat bila tersedia, atau Gemini cloud.</p>
       <form id="ask-form">
         <input id="ask-input" type="text"
           placeholder="cth: barang apa paling laris hari ini?" required />
         <button type="submit">Tanya</button>
       </form>
       <div id="ai-answer" class="ai-answer"></div>
+      <p id="ai-source" class="ai-source" hidden></p>
+      <h3>Penasihat Kulakan</h3>
+      <p class="hint">Masukkan uang belanja besok. AI menyarankan apa yang dibeli dari penjualan 7 hari terakhir.</p>
+      <form id="restock-form">
+        <input id="restock-budget" type="text" inputmode="numeric"
+          placeholder="Uang belanja (Rp), mis. 200.000" required autocomplete="off" />
+        <button type="submit">Sarankan</button>
+      </form>
+      <div id="restock-result" class="ai-answer"></div>
+      <p id="restock-source" class="ai-source" hidden></p>
       <h3>Ringkasan harian</h3>
       <button id="summary-btn" type="button">Buat ringkasan hari ini</button>
       <div id="daily-summary" class="ai-answer"></div>

@@ -73,23 +73,23 @@ export function getProduct(id) {
 
 // Muat produk contoh (kombinasi produk global kebanggaan Indonesia & sembako harian)
 export const SAMPLE_PRODUCTS = [
-  // Produk Indonesia Terkenal Global
-  { name: 'Indomie Goreng Original', price: 3500, stock: 40 },
-  { name: 'Kopiko Coffee Candy (Zak)', price: 8500, stock: 25 },
-  { name: 'Tolak Angin SidoMuncul (Sachet)', price: 4000, stock: 30 },
-  { name: 'Richeese Nabati Wafer Keju', price: 2500, stock: 35 },
-  { name: 'Kacang Dua Kelinci Sukro', price: 6000, stock: 20 },
-  { name: 'Teh Botol Sosro Kotak 250ml', price: 4500, stock: 24 },
-  { name: 'Kopi Kapal Api Special Mix', price: 2000, stock: 50 },
-  { name: 'SilverQueen Chocolate Milk 58g', price: 16000, stock: 15 },
-  { name: 'Indomie Kuah Ayam Bawang', price: 3500, stock: 30 },
-  { name: 'Sari Roti Sobek Coklat', price: 11000, stock: 8 },
+  // Jajanan & minuman (nama generik: video/demo tidak boleh menampilkan merek pihak ketiga)
+  { name: 'Mi Goreng Instan', price: 3500, stock: 40 },
+  { name: 'Permen Kopi (Bungkus)', price: 8500, stock: 25 },
+  { name: 'Jamu Masuk Angin (Sachet)', price: 4000, stock: 30 },
+  { name: 'Wafer Keju', price: 2500, stock: 35 },
+  { name: 'Kacang Atom', price: 6000, stock: 20 },
+  { name: 'Teh Kotak 250ml', price: 4500, stock: 24 },
+  { name: 'Kopi Susu Sachet', price: 2000, stock: 50 },
+  { name: 'Cokelat Batang 58g', price: 16000, stock: 15 },
+  { name: 'Mi Kuah Ayam Bawang', price: 3500, stock: 30 },
+  { name: 'Roti Sobek Cokelat', price: 11000, stock: 8 },
   // Sembako & Kebutuhan Harian Warung
   { name: 'Beras Premium 1 kg', price: 16000, stock: 15 },
-  { name: 'Minyak Goreng Kita 1 Liter', price: 17500, stock: 12 },
+  { name: 'Minyak Goreng 1 Liter', price: 17500, stock: 12 },
   { name: 'Telur Ayam 1/2 kg (~8 butir)', price: 15000, stock: 10 },
-  { name: 'Gula Pasir Gulaku 1 kg', price: 18000, stock: 14 },
-  { name: 'Air Mineral Aqua 600ml', price: 3500, stock: 24 }
+  { name: 'Gula Pasir 1 kg', price: 18000, stock: 14 },
+  { name: 'Air Mineral 600ml', price: 3500, stock: 24 }
 ];
 
 export async function seedSampleProducts() {
@@ -114,21 +114,21 @@ export async function seedSampleProducts() {
 // seperti penjualan biasa. Sekali isi, tidak bisa digandakan: bila sudah
 // ada penjualan di jendela 14 hari, fungsi ini mengembalikan 0.
 const SAMPLE_DAILY_RATE = [
-  { name: 'Indomie Goreng Original', rate: 3 },
-  { name: 'Kopiko Coffee Candy (Zak)', rate: 2 },
-  { name: 'Tolak Angin SidoMuncul (Sachet)', rate: 1 },
-  { name: 'Richeese Nabati Wafer Keju', rate: 2 },
-  { name: 'Kacang Dua Kelinci Sukro', rate: 1 },
-  { name: 'Teh Botol Sosro Kotak 250ml', rate: 2 },
-  { name: 'Kopi Kapal Api Special Mix', rate: 4 },
-  { name: 'SilverQueen Chocolate Milk 58g', rate: 1 },
-  { name: 'Indomie Kuah Ayam Bawang', rate: 2 },
-  { name: 'Sari Roti Sobek Coklat', rate: 1 },
+  { name: 'Mi Goreng Instan', rate: 3 },
+  { name: 'Permen Kopi (Bungkus)', rate: 2 },
+  { name: 'Jamu Masuk Angin (Sachet)', rate: 1 },
+  { name: 'Wafer Keju', rate: 2 },
+  { name: 'Kacang Atom', rate: 1 },
+  { name: 'Teh Kotak 250ml', rate: 2 },
+  { name: 'Kopi Susu Sachet', rate: 4 },
+  { name: 'Cokelat Batang 58g', rate: 1 },
+  { name: 'Mi Kuah Ayam Bawang', rate: 2 },
+  { name: 'Roti Sobek Cokelat', rate: 1 },
   { name: 'Beras Premium 1 kg', rate: 0.4 },
-  { name: 'Minyak Goreng Kita 1 Liter', rate: 0.3 },
+  { name: 'Minyak Goreng 1 Liter', rate: 0.3 },
   { name: 'Telur Ayam 1/2 kg (~8 butir)', rate: 0.5 },
-  { name: 'Gula Pasir Gulaku 1 kg', rate: 0.3 },
-  { name: 'Air Mineral Aqua 600ml', rate: 3 },
+  { name: 'Gula Pasir 1 kg', rate: 0.3 },
+  { name: 'Air Mineral 600ml', rate: 3 },
 ];
 
 // PRNG deterministik (mulberry32) supaya data contoh stabil antar-jalan.
@@ -165,12 +165,13 @@ export async function seedSampleSales(days = 14) {
   }
   const windowSet = new Set(windowDates);
 
-  // Sudah ada riwayat di jendela ini? Jangan gandakan.
+  // Sudah ada penjualan CONTOH di jendela ini? Jangan gandakan.
+  // (Penjualan asli tidak menghalangi; tanda `sample` ikut tersinkron.)
   const existing = await tx(['sales'], 'readonly', (t) => new Promise((resolve) => {
     const req = t.objectStore('sales').getAll();
     req.onsuccess = () => resolve(req.result);
   }));
-  if (existing.some((s) => windowSet.has(s.date))) return 0;
+  if (existing.some((s) => s.sample && windowSet.has(s.date))) return 0;
 
   // Rencana total per produk selama 14 hari, dibatasi stok-2 (sisakan 2).
   const stockLeft = new Map(products.map((p) => [p.id, p.stock]));
@@ -238,6 +239,7 @@ export async function seedSampleSales(days = 14) {
         change: paid - total,
         date: windowDates[di],
         createdAt,
+        sample: true,
       };
       const saleId = await tx(['products', 'sales'], 'readwrite', (t) => {
         const productsStore = t.objectStore('products');
@@ -396,6 +398,16 @@ export function getSale(id) {
   });
 }
 
+// Semua penjualan sejak tanggal fromDate ('YYYY-MM-DD', inklusif).
+export function getSalesSince(fromDate) {
+  return tx(['sales'], 'readonly', (t) => {
+    return new Promise((resolve) => {
+      const req = t.objectStore('sales').index('by-date').getAll(IDBKeyRange.lowerBound(fromDate));
+      req.onsuccess = () => resolve(req.result);
+    });
+  });
+}
+
 export async function getTodaySummary() {
   const today = localDateString(); // Gunakan tanggal lokal WIB
   const sales = await tx(['sales'], 'readonly', (t) => {
@@ -481,6 +493,7 @@ export async function upsertSaleFromCloud(sale) {
       change: sale.change,
       date: sale.date,
       createdAt: sale.createdAt || Date.now(),
+      sample: sale.sample === true,
     });
   });
   return true;

@@ -16,6 +16,10 @@
 // Enforcement App Check diaktifkan di Firebase Console (Firestore +
 // Firebase AI Logic) setelah klien siap — itu langkah manual, bukan kode.
 
+// Satu versi untuk semua modul CDN: modul beda versi tidak berbagi instance app.
+// 13.x dibutuhkan untuk hybrid inference (InferenceMode + inferenceSource).
+export const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/13.4.0';
+
 let app = null;
 let db = null;
 let appCheck = null;
@@ -76,14 +80,14 @@ export async function getFirebaseApp() {
   if (app) return app;
   const firebaseConfig = await loadFirebaseConfig();
   const { initializeApp, getApps, getApp } = await import(
-    'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
+    `${FIREBASE_SDK}/firebase-app.js`
   );
   app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
   // App Check diinisialisasi bersama app agar sync dan AI Logic (nanti)
   // memakai perlindungan yang sama.
   const appCheckMod = await import(
-    'https://www.gstatic.com/firebasejs/11.0.1/firebase-app-check.js'
+    `${FIREBASE_SDK}/firebase-app-check.js`
   );
   await initAppCheck(app, firebaseConfig, appCheckMod);
   return app;
@@ -94,7 +98,7 @@ export async function getFirestoreDb() {
 
   const firebaseApp = await getFirebaseApp();
   const { getFirestore, doc, setDoc, collection, getDocs } = await import(
-    'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js'
+    `${FIREBASE_SDK}/firebase-firestore.js`
   );
 
   db = getFirestore(firebaseApp);
@@ -107,7 +111,7 @@ export async function getAppCheckToken(forceRefresh = false) {
   await getFirebaseApp();
   if (!appCheck) throw new Error('App Check belum terinisialisasi.');
   const { getToken } = await import(
-    'https://www.gstatic.com/firebasejs/11.0.1/firebase-app-check.js'
+    `${FIREBASE_SDK}/firebase-app-check.js`
   );
   return getToken(appCheck, forceRefresh);
 }

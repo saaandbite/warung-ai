@@ -48,6 +48,7 @@ export async function syncNow() {
             change: sale.change,
             date: sale.date,
             createdAt: sale.createdAt || Date.now(),
+            sample: sale.sample === true,
             syncedAt: Date.now(),
           }, { merge: true });
         }
@@ -117,6 +118,7 @@ export async function pullFromCloud() {
       change: data.change,
       date: data.date,
       createdAt: data.createdAt,
+      sample: data.sample === true,
     });
     if (added) addedSales += 1;
   }

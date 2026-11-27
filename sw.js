@@ -9,7 +9,10 @@
 // semua file dalam satu sesi berasal dari deployment yang sama saat
 // online; cache dipakai hanya bila tidak ada internet.
 
-const CACHE_NAME = 'warung-ai-v8';
+const CACHE_NAME = 'warung-ai-v10';
+// SDK Firebase dari CDN ikut di-cache (URL berversi, isinya tidak berubah)
+// supaya Gemini Nano tetap bisa dipanggil saat offline.
+const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';
 const APP_SHELL = [
   './',
   './index.html',
@@ -41,10 +44,10 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Hanya tangani request GET same-origin (app shell & aset lokal).
+  // Hanya tangani request GET same-origin (app shell & aset lokal) + SDK Firebase.
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin && !url.href.startsWith(FIREBASE_CDN)) return;
 
   // Network-first: saat online selalu ambil versi terbaru dari server
   // (satu sesi = satu deployment yang konsisten). Saat offline, pakai
