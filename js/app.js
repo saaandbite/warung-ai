@@ -2,7 +2,7 @@
 // Menangani navigasi tab, status online/offline, dan registrasi Service Worker.
 
 import { listProducts, recordSale, getTodaySummary, getPendingSyncCount, seedSampleProducts, seedSampleSales, updateProductStock, addProduct } from './db.js';
-import { askAI, dailySummary } from './ai.js';
+import { askAI, dailySummary, adviseRestock } from './ai.js';
 
 // Helper sanitasi HTML untuk mencegah Stored-XSS & reflected-XSS
 export function escapeHtml(str) {
@@ -966,6 +966,56 @@ document.getElementById('ask-form').addEventListener('submit', async (e) => {
     out.textContent = `AI belum bisa menjawab: ${err.message}`;
   }
   input.value = '';
+});
+
+// --- Penasihat Kulakan ---
+const restockBudget = document.getElementById('restock-budget');
+restockBudget.addEventListener('input', (e) => {
+  const digits = e.target.value.replace(/\D/g, '');
+  e.target.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+});
+
+document.getElementById('restock-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const out = document.getElementById('restock-result');
+  const sourceBadge = document.getElementById('restock-source');
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const budget = Number(restockBudget.value.replace(/\D/g, ''));
+  sourceBadge.hidden = true;
+  if (!budget) {
+    out.textContent = 'Isi dulu uang belanja, misalnya 200.000.';
+    return;
+  }
+
+  out.textContent = 'Menghitung dari penjualan 7 hari terakhir…';
+  submitBtn.disabled = true;
+  try {
+    const plan = await adviseRestock(budget);
+    if (plan.candidatesCount === 0) {
+      out.textContent = 'Belum ada barang yang perlu dibeli: stok masih cukup untuk seminggu, atau belum ada data penjualan 7 hari terakhir.';
+    } else if (plan.items.length === 0) {
+      out.textContent = `Uang ${formatRupiah(budget)} belum cukup untuk membeli barang yang paling dibutuhkan.`;
+    } else {
+      out.innerHTML = `
+        <ol class="restock-list">
+          ${plan.items.map((it) => `
+            <li>
+              <strong>${escapeHtml(it.name)}</strong> × ${it.qty}
+              <span class="restock-subtotal">≈ ${formatRupiah(it.subtotal)}</span>
+              <div class="hint">${escapeHtml(it.reason)}</div>
+            </li>`).join('')}
+        </ol>
+        <p><strong>Total ≈ ${formatRupiah(plan.total)}</strong> · sisa ${formatRupiah(plan.leftover)}</p>
+        <p class="hint">Dihitung dengan harga jual; harga kulakan biasanya lebih murah.</p>`;
+    }
+    sourceBadge.textContent = AI_SOURCE_LABEL[plan.source];
+    sourceBadge.dataset.source = plan.source;
+    sourceBadge.hidden = false;
+  } catch (err) {
+    out.textContent = `Saran belum bisa dibuat: ${err.message}`;
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 
 document.getElementById('summary-btn').addEventListener('click', async () => {

@@ -12,28 +12,39 @@
 //   askAI(question) -> Promise<{ text: string, source: 'on_device'|'in_cloud'|'local' }>
 //   dailySummary() -> Promise<string>
 
-import { getTodaySummary, listProducts } from './db.js';
+import { getTodaySummary, listProducts, getSalesSince, localDateString } from './db.js';
 import { getFirebaseApp, FIREBASE_SDK } from './firebase.js';
 
 const CLOUD_MODEL = 'gemini-3.5-flash-lite';
 const LOW_STOCK = 5;
 
-let modelPromise = null;
+const models = new Map();
 
-function getModel() {
-  modelPromise ??= (async () => {
-    const app = await getFirebaseApp();
-    const { getAI, getGenerativeModel, InferenceMode } = await import(`${FIREBASE_SDK}/firebase-ai.js`);
-    // Backend default = Gemini Developer API (free tier).
-    return getGenerativeModel(getAI(app), {
-      mode: InferenceMode.PREFER_ON_DEVICE,
-      inCloudParams: { model: CLOUD_MODEL },
+// Satu model hybrid per konfigurasi (Q&A teks biasa, Kulakan berformat JSON).
+function getModel(kind = 'text', jsonSchema = null) {
+  if (!models.has(kind)) {
+    const promise = (async () => {
+      const app = await getFirebaseApp();
+      const { getAI, getGenerativeModel, InferenceMode } = await import(`${FIREBASE_SDK}/firebase-ai.js`);
+      const inCloudParams = { model: CLOUD_MODEL };
+      const onDeviceParams = {};
+      if (jsonSchema) {
+        inCloudParams.generationConfig = { responseMimeType: 'application/json', responseJsonSchema: jsonSchema };
+        onDeviceParams.promptOptions = { responseConstraint: jsonSchema };
+      }
+      // Backend default = Gemini Developer API (free tier).
+      return getGenerativeModel(getAI(app), {
+        mode: InferenceMode.PREFER_ON_DEVICE,
+        inCloudParams,
+        onDeviceParams,
+      });
+    })().catch((err) => {
+      models.delete(kind); // coba lagi di permintaan berikutnya
+      throw err;
     });
-  })().catch((err) => {
-    modelPromise = null; // coba lagi di pertanyaan berikutnya
-    throw err;
-  });
-  return modelPromise;
+    models.set(kind, promise);
+  }
+  return models.get(kind);
 }
 
 async function buildStoreContext() {
@@ -126,4 +137,145 @@ export async function dailySummary() {
     lines.push('Semua stok masih aman.');
   }
   return lines.join('\n');
+}
+
+// --- Penasihat Kulakan: "dengan uang Rp X, besok beli apa?" ---
+// Kode menghitung kandidat (laku per hari, sisa hari stok, jumlah yang perlu
+// dibeli). Model hanya memilih prioritas + alasan. Kode lalu memvalidasi:
+// buang barang di luar kandidat, batasi jumlah, potong dari bawah bila
+// melebihi budget. Semua rupiah dihitung kode.
+//
+// shortcut: harga kulakan belum dicatat, jadi pakai harga jual sebagai
+// perkiraan atas (belanja nyata lebih murah); ganti bila produk punya harga modal.
+
+const HISTORY_DAYS = 7;
+const COVER_DAYS = 7; // beli cukup untuk sekitar seminggu
+
+const RESTOCK_SCHEMA = {
+  type: 'object',
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          qty: { type: 'integer' },
+          reason: { type: 'string' },
+        },
+        required: ['name', 'qty', 'reason'],
+      },
+    },
+  },
+  required: ['items'],
+};
+
+// products: [{name, price, stock}], sales: [{items:[{name, qty}]}]
+export function buildRestockCandidates(products, sales, days = HISTORY_DAYS) {
+  const sold = new Map();
+  sales.forEach((s) =>
+    s.items.forEach((it) => {
+      const key = it.name.toLowerCase();
+      sold.set(key, (sold.get(key) || 0) + it.qty);
+    }),
+  );
+  return products
+    .map((p) => {
+      const perDay = (sold.get(p.name.toLowerCase()) || 0) / days;
+      return {
+        name: p.name,
+        stock: p.stock,
+        unitPrice: p.price,
+        soldPerDay: Math.round(perDay * 10) / 10,
+        daysLeft: perDay > 0 ? Math.round((p.stock / perDay) * 10) / 10 : null,
+        suggestedQty: Math.ceil(perDay * COVER_DAYS) - p.stock,
+      };
+    })
+    .filter((c) => c.suggestedQty > 0)
+    .sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity));
+}
+
+// Validasi pasca-model. picks: [{name, qty, reason}] urut prioritas.
+// Model memilih barang + batas jumlah; kode membagi budget satu per satu ke
+// barang yang stoknya paling cepat habis, supaya satu barang tidak memborong
+// seluruh budget. Seri -> ikut urutan prioritas model.
+export function planRestock(candidates, picks, budget) {
+  const byName = new Map(candidates.map((c) => [c.name.toLowerCase(), c]));
+  const entries = [];
+  for (const pick of picks) {
+    const c = byName.get(String(pick.name ?? '').toLowerCase());
+    if (!c) continue; // di luar katalog/kandidat, atau duplikat
+    byName.delete(c.name.toLowerCase());
+    const cap = Math.min(Math.max(1, Math.floor(Number(pick.qty) || 0)), c.suggestedQty);
+    entries.push({ c, cap, qty: 0, reason: String(pick.reason ?? '').slice(0, 160) });
+  }
+
+  let total = 0;
+  for (;;) {
+    let best = null;
+    let bestCover = Infinity;
+    for (const e of entries) {
+      if (e.qty >= e.cap || total + e.c.unitPrice > budget) continue;
+      const cover = (e.c.stock + e.qty) / e.c.soldPerDay; // hari sampai habis
+      if (cover < bestCover) [best, bestCover] = [e, cover];
+    }
+    if (!best) break;
+    best.qty += 1;
+    total += best.c.unitPrice;
+  }
+
+  const items = entries
+    .filter((e) => e.qty > 0)
+    .map((e) => ({ name: e.c.name, qty: e.qty, unitPrice: e.c.unitPrice, subtotal: e.qty * e.c.unitPrice, reason: e.reason }));
+  return { items, total, leftover: budget - total };
+}
+
+function localPicks(candidates) {
+  return candidates.map((c) => ({
+    name: c.name,
+    qty: c.suggestedQty,
+    reason: c.daysLeft !== null
+      ? `Laku ±${c.soldPerDay}/hari, stok habis dalam ±${c.daysLeft} hari.`
+      : 'Stok menipis.',
+  }));
+}
+
+function buildRestockPrompt(budget, candidates) {
+  return [
+    'You help the owner of a small Indonesian shop (warung) decide what to buy tomorrow at the wholesale market.',
+    `Budget: ${budget} rupiah. Total cost = sum of unitPrice * qty and must not exceed the budget.`,
+    'Choose from the candidates below ONLY. qty must be between 1 and suggestedQty.',
+    'Prioritize items that will run out soonest (low daysLeft) and sell fastest (high soldPerDay).',
+    'List items in priority order, most important first.',
+    'reason: one short sentence in Indonesian (max 12 words), based on the numbers given.',
+    '',
+    `Candidates (JSON): ${JSON.stringify(candidates)}`,
+  ].join('\n');
+}
+
+function parseJson(text) {
+  return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+}
+
+// -> { items, total, leftover, source, candidatesCount }
+export async function adviseRestock(budget) {
+  const from = new Date();
+  from.setDate(from.getDate() - HISTORY_DAYS);
+  const [products, sales] = await Promise.all([listProducts(), getSalesSince(localDateString(from))]);
+  const candidates = buildRestockCandidates(products, sales);
+  if (candidates.length === 0) {
+    return { items: [], total: 0, leftover: budget, source: 'local', candidatesCount: 0 };
+  }
+
+  try {
+    const model = await getModel('restock', RESTOCK_SCHEMA);
+    const result = await model.generateContent(buildRestockPrompt(budget, candidates));
+    const plan = planRestock(candidates, parseJson(result.response.text()).items ?? [], budget);
+    if (plan.items.length > 0) {
+      return { ...plan, source: result.response.inferenceSource || 'in_cloud', candidatesCount: candidates.length };
+    }
+  } catch (err) {
+    console.warn('[Warung AI] Kulakan: model tidak tersedia, pakai urutan lokal:', err);
+  }
+  return { ...planRestock(candidates, localPicks(candidates), budget), source: 'local', candidatesCount: candidates.length };
 }

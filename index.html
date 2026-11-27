@@ -145,6 +145,15 @@
       </form>
       <div id="ai-answer" class="ai-answer"></div>
       <p id="ai-source" class="ai-source" hidden></p>
+      <h3>Penasihat Kulakan</h3>
+      <p class="hint">Masukkan uang belanja besok. AI menyarankan apa yang dibeli dari penjualan 7 hari terakhir.</p>
+      <form id="restock-form">
+        <input id="restock-budget" type="text" inputmode="numeric"
+          placeholder="Uang belanja (Rp), mis. 200.000" required autocomplete="off" />
+        <button type="submit">Sarankan</button>
+      </form>
+      <div id="restock-result" class="ai-answer"></div>
+      <p id="restock-source" class="ai-source" hidden></p>
       <h3>Ringkasan harian</h3>
       <button id="summary-btn" type="button">Buat ringkasan hari ini</button>
       <div id="daily-summary" class="ai-answer"></div>

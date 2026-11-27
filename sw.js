@@ -9,7 +9,7 @@
 // semua file dalam satu sesi berasal dari deployment yang sama saat
 // online; cache dipakai hanya bila tidak ada internet.
 
-const CACHE_NAME = 'warung-ai-v9';
+const CACHE_NAME = 'warung-ai-v10';
 // SDK Firebase dari CDN ikut di-cache (URL berversi, isinya tidak berubah)
 // supaya Gemini Nano tetap bisa dipanggil saat offline.
 const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';

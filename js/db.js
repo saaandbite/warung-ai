@@ -396,6 +396,16 @@ export function getSale(id) {
   });
 }
 
+// Semua penjualan sejak tanggal fromDate ('YYYY-MM-DD', inklusif).
+export function getSalesSince(fromDate) {
+  return tx(['sales'], 'readonly', (t) => {
+    return new Promise((resolve) => {
+      const req = t.objectStore('sales').index('by-date').getAll(IDBKeyRange.lowerBound(fromDate));
+      req.onsuccess = () => resolve(req.result);
+    });
+  });
+}
+
 export async function getTodaySummary() {
   const today = localDateString(); // Gunakan tanggal lokal WIB
   const sales = await tx(['sales'], 'readonly', (t) => {
