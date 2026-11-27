@@ -137,13 +137,14 @@
 
     <section id="tab-ai" class="tab">
       <h2>Tanya AI</h2>
-      <p class="hint">Jawaban dihitung dari data tokomu sendiri. Integrasi model AI (Firebase AI Logic) sedang disiapkan.</p>
+      <p class="hint">Jawaban diambil dari data tokomu sendiri, lewat Gemini Nano di perangkat bila tersedia, atau Gemini cloud.</p>
       <form id="ask-form">
         <input id="ask-input" type="text"
           placeholder="cth: barang apa paling laris hari ini?" required />
         <button type="submit">Tanya</button>
       </form>
       <div id="ai-answer" class="ai-answer"></div>
+      <p id="ai-source" class="ai-source" hidden></p>
       <h3>Ringkasan harian</h3>
       <button id="summary-btn" type="button">Buat ringkasan hari ini</button>
       <div id="daily-summary" class="ai-answer"></div>

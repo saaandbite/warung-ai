@@ -1,84 +1,126 @@
-// Warung AI — lapisan AI (Firebase AI Logic).
+// Warung AI — lapisan AI (Firebase AI Logic, hybrid inference).
 //
-// TODO (Agung): lengkapi implementasi ini setelah project Firebase dibuat.
-//   1. Salin js/firebase-config.example.js -> js/firebase-config.js, isi config.
-//   2. npm i firebase (atau pakai CDN modul Firebase di index.html).
-//   3. getGenerativeModel({ model: 'gemini-2.5-nano' }) untuk on-device,
-//      dengan fallback ke model cloud saat Nano tidak tersedia / offline gagal.
-//   4. Aktifkan App Check (debug token untuk pengembangan).
+// Satu model hybrid (InferenceMode.PREFER_ON_DEVICE):
+//   - Gemini Nano di perangkat bila Chrome desktop mendukungnya,
+//   - Gemini cloud (Flash-Lite) bila Nano tidak ada (mis. Chrome Android).
+// Bila model sama sekali tidak bisa dipanggil (offline tanpa Nano, App Check
+// gagal, kuota habis), jawaban dihitung lokal dari data toko — app tetap berguna.
 //
-// Sampai integrasi selesai, fungsi di bawah memakai ringkasan berbasis data
-// lokal (tanpa model) supaya tab "Tanya AI" tetap berguna saat demo awal.
+// Prinsip: angka dihitung kode, model hanya merangkai jawaban dari angka itu.
 //
-// API yang dipakai app.js — jangan ubah namanya:
-//   askAI(question: string) -> Promise<string>
+// API yang dipakai app.js:
+//   askAI(question) -> Promise<{ text: string, source: 'on_device'|'in_cloud'|'local' }>
 //   dailySummary() -> Promise<string>
 
 import { getTodaySummary, listProducts } from './db.js';
+import { getFirebaseApp, FIREBASE_SDK } from './firebase.js';
 
-// Cek kasar ketersediaan Nano on-device di Chrome ini.
-// Pemeriksaan asli memakai Firebase AI Logic; ini placeholder yang
-// mengembalikan false sampai integrasi selesai.
-export async function isNanoAvailable() {
-  return false; // TODO: ganti dengan pengecekan Firebase AI Logic.
+const CLOUD_MODEL = 'gemini-2.5-flash-lite';
+const LOW_STOCK = 5;
+
+let modelPromise = null;
+
+function getModel() {
+  modelPromise ??= (async () => {
+    const app = await getFirebaseApp();
+    const { getAI, getGenerativeModel, InferenceMode } = await import(`${FIREBASE_SDK}/firebase-ai.js`);
+    // Backend default = Gemini Developer API (free tier).
+    return getGenerativeModel(getAI(app), {
+      mode: InferenceMode.PREFER_ON_DEVICE,
+      inCloudParams: { model: CLOUD_MODEL },
+    });
+  })().catch((err) => {
+    modelPromise = null; // coba lagi di pertanyaan berikutnya
+    throw err;
+  });
+  return modelPromise;
 }
 
-function buildStoreContext() {
-  return Promise.all([getTodaySummary(), listProducts()]).then(
-    ([today, products]) => ({
-      today,
-      products: products.map((p) => ({ name: p.name, price: p.price, stock: p.stock })),
-    }),
+async function buildStoreContext() {
+  const [today, products] = await Promise.all([getTodaySummary(), listProducts()]);
+  const sold = new Map();
+  today.sales.forEach((s) =>
+    s.items.forEach((it) => sold.set(it.name, (sold.get(it.name) || 0) + it.qty)),
   );
+  return {
+    today,
+    products,
+    itemsSoldToday: [...sold.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, qty]) => ({ name, qty })),
+    lowStock: products.filter((p) => p.stock <= LOW_STOCK),
+  };
 }
 
-// Tanya-jawab sederhana dari data toko (fallback lokal).
-// TODO: ganti badannya dengan panggilan model (Nano on-device dulu,
-// lalu cloud kalau Nano tidak tersedia), dengan konteks data toko.
-export async function askAI(question) {
-  const q = question.toLowerCase();
-  const { today, products } = await buildStoreContext();
+function buildPrompt(question, ctx) {
+  const data = {
+    transactionsToday: ctx.today.count,
+    revenueTodayRupiah: ctx.today.total,
+    itemsSoldToday: ctx.itemsSoldToday,
+    products: ctx.products.map((p) => ({ name: p.name, priceRupiah: p.price, stock: p.stock })),
+    lowStockThreshold: LOW_STOCK,
+  };
+  return [
+    'You are the assistant of a small Indonesian shop (warung).',
+    'Answer ONLY from the store data below. If the data cannot answer the question, say so briefly.',
+    'Use the numbers exactly as given; never calculate or invent new numbers.',
+    'Reply in the same language as the question (Indonesian or English), in at most 4 short sentences, plain text.',
+    '',
+    `Store data (JSON): ${JSON.stringify(data)}`,
+    '',
+    `Question: ${question}`,
+  ].join('\n');
+}
 
-  if (q.includes('laris')) {
-    const sold = new Map();
-    today.sales.forEach((s) =>
-      s.items.forEach((it) => sold.set(it.name, (sold.get(it.name) || 0) + it.qty)),
-    );
-    if (sold.size === 0) return 'Belum ada penjualan hari ini, jadi belum bisa menentukan barang paling laris.';
-    const [name, qty] = [...sold.entries()].sort((a, b) => b[1] - a[1])[0];
+export async function askAI(question) {
+  const ctx = await buildStoreContext();
+  try {
+    const model = await getModel();
+    const result = await model.generateContent(buildPrompt(question, ctx));
+    const text = result.response.text().trim();
+    if (text) return { text, source: result.response.inferenceSource || 'in_cloud' };
+  } catch (err) {
+    console.warn('[Warung AI] model tidak tersedia, pakai jawaban lokal:', err);
+  }
+  return { text: localAnswer(question, ctx), source: 'local' };
+}
+
+// Jawaban cadangan tanpa model (offline tanpa Nano / AI Logic gagal).
+function localAnswer(question, { today, itemsSoldToday, lowStock }) {
+  const q = question.toLowerCase();
+
+  if (q.includes('laris') || q.includes('best') || q.includes('top')) {
+    if (itemsSoldToday.length === 0) return 'Belum ada penjualan hari ini, jadi belum bisa menentukan barang paling laris.';
+    const { name, qty } = itemsSoldToday[0];
     return `Hari ini yang paling laris: ${name} (${qty} terjual).`;
   }
 
-  if (q.includes('stok') && (q.includes('habis') || q.includes('menipis') || q.includes('sedikit'))) {
-    const low = products.filter((p) => p.stock <= 5);
-    if (low.length === 0) return 'Semua stok masih aman (di atas 5).';
-    return 'Stok menipis: ' + low.map((p) => `${p.name} (sisa ${p.stock})`).join(', ') + '.';
+  if (q.includes('stok') || q.includes('stock') || q.includes('habis')) {
+    if (lowStock.length === 0) return `Semua stok masih aman (di atas ${LOW_STOCK}).`;
+    return 'Stok menipis: ' + lowStock.map((p) => `${p.name} (sisa ${p.stock})`).join(', ') + '.';
   }
 
-  if (q.includes('penjualan') || q.includes('omzet') || q.includes('laku')) {
+  if (q.includes('penjualan') || q.includes('omzet') || q.includes('laku') || q.includes('sales')) {
     return `Hari ini ada ${today.count} transaksi dengan total ${today.total.toLocaleString('id-ID', { style: 'currency', currency: 'IDR' })}.`;
   }
 
   return (
-    'Aku bisa jawab dari data tokomu, misalnya:\n' +
+    'Model AI sedang tidak tersedia. Tanpa model, aku bisa jawab:\n' +
     '• "barang apa paling laris hari ini?"\n' +
     '• "stok apa yang hampir habis?"\n' +
-    '• "berapa penjualan hari ini?"\n' +
-    '(Mode AI penuh — Gemini Nano on-device — masih disiapkan.)'
+    '• "berapa penjualan hari ini?"'
   );
 }
 
 export async function dailySummary() {
-  const { today, products } = await buildStoreContext();
-  const low = products.filter((p) => p.stock <= 5);
+  const { today, lowStock } = await buildStoreContext();
   const lines = [
     `Ringkasan hari ini: ${today.count} transaksi, total Rp ${today.total.toLocaleString('id-ID')}.`,
   ];
-  if (low.length > 0) {
-    lines.push('Perlu restok: ' + low.map((p) => `${p.name} (sisa ${p.stock})`).join(', ') + '.');
+  if (lowStock.length > 0) {
+    lines.push('Perlu restok: ' + lowStock.map((p) => `${p.name} (sisa ${p.stock})`).join(', ') + '.');
   } else {
     lines.push('Semua stok masih aman.');
   }
-  // TODO: minta model (Nano/cloud) merangkai ringkasan naratif dari konteks ini.
   return lines.join('\n');
 }

@@ -942,13 +942,26 @@ async function renderStock() {
 }
 
 // --- AI: tanya-jawab + ringkasan harian ---
+// Badge jujur: model mana yang benar-benar menjawab.
+const AI_SOURCE_LABEL = {
+  on_device: 'Dijawab oleh Gemini Nano (di perangkat, tanpa internet)',
+  in_cloud: 'Dijawab oleh Gemini (cloud)',
+  local: 'Dihitung lokal: model AI sedang tidak tersedia',
+};
+
 document.getElementById('ask-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = document.getElementById('ask-input');
   const out = document.getElementById('ai-answer');
+  const sourceBadge = document.getElementById('ai-source');
   out.textContent = 'Mencari di data toko…';
+  sourceBadge.hidden = true;
   try {
-    out.textContent = await askAI(input.value.trim());
+    const { text, source } = await askAI(input.value.trim());
+    out.textContent = text;
+    sourceBadge.textContent = AI_SOURCE_LABEL[source];
+    sourceBadge.dataset.source = source;
+    sourceBadge.hidden = false;
   } catch (err) {
     out.textContent = `AI belum bisa menjawab: ${err.message}`;
   }

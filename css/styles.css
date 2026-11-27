@@ -861,6 +861,26 @@ button:disabled {
   line-height: 1.5;
 }
 
+.ai-source {
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--primary-light);
+  color: var(--primary-text);
+}
+
+.ai-source[data-source='local'] {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.ai-source[hidden] {
+  display: none;
+}
+
 .low-stock {
   color: var(--danger);
   font-weight: 700;
